@@ -21,6 +21,7 @@ _BASE = Path(__file__).parent
 
 import numpy as np
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends, Body, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi.security import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
@@ -134,6 +135,14 @@ app = FastAPI(
     description="写真の真正性を技術的に担保するAPI",
     version="0.9.0",
     lifespan=lifespan,
+)
+
+_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "https://imprint-dje.pages.dev").split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["*"],
 )
 
 app.mount("/static", StaticFiles(directory=str(_BASE / "static")), name="static")
