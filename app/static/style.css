@@ -39,6 +39,82 @@ header {
 }
 .logo { font-size: 20px; font-weight: 700; letter-spacing: -.5px; }
 .tagline { font-size: 12px; color: #9ca3af; }
+.header-user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.plan-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  letter-spacing: .2px;
+}
+.plan-starter    { background: #1f2937; color: #9ca3af; }
+.plan-business   { background: #312e81; color: #a5b4fc; }
+.plan-enterprise { background: #14532d; color: #86efac; }
+.usage-count { font-size: 12px; color: #6b7280; }
+.user-email-text { font-size: 12px; color: #6b7280; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.logout-link { font-size: 12px; color: #6b7280; text-decoration: none; }
+.logout-link:hover { color: #d1d5db; }
+
+/* ── API Key Section ── */
+.apikey-section {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 0;
+  box-shadow: var(--shadow);
+}
+.apikey-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.apikey-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sub);
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+.apikey-value {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  background: #f9fafb;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 12px;
+  word-break: break-all;
+  color: #374151;
+}
+.apikey-notice {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #92400e;
+  background: #fef3c7;
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+.btn-upgrade {
+  margin-left: auto;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-upgrade:hover { background: #4f46e5; }
 
 /* ── Main ── */
 main { max-width: 820px; margin: 0 auto; padding: 28px 16px 40px; }

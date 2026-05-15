@@ -7,16 +7,33 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <div id="config" data-api-key="{{ api_key }}" data-network="{{ network_name }}" data-chain-id="{{ chain_id }}" hidden></div>
+  <div id="config" data-api-key="{{ api_key }}" data-network="{{ network_name }}" data-chain-id="{{ chain_id }}" data-stripe="{{ 'true' if stripe_enabled else 'false' }}" data-plan="{{ user_plan }}" hidden></div>
 
   <header>
     <div class="header-inner">
       <div class="logo">Imprint</div>
       <div class="tagline">Photo Authenticity Verification</div>
+      <div class="header-user">
+        <span class="plan-badge plan-{{ user_plan }}">{{ plan_label }}</span>
+        <span class="usage-count">{{ usage_count }} / {{ usage_limit }} 回</span>
+        <span class="user-email-text">{{ user_email }}</span>
+        <a href="/auth/logout" class="logout-link">ログアウト</a>
+      </div>
     </div>
   </header>
 
   <main>
+    <section class="apikey-section" id="apikeySection">
+      <div class="apikey-header">
+        <span class="apikey-label">APIキー</span>
+        <div id="upgradeBtn" class="btn-upgrade hidden">Business にアップグレード（¥9,800/月）</div>
+      </div>
+      <div id="apikeyValue" class="apikey-value">読み込み中...</div>
+      <div id="apikeyFirstTime" class="apikey-notice hidden">
+        このキーは一度だけ表示されます。安全な場所に保存してください。
+      </div>
+    </section>
+
     <section class="upload-section">
       <div class="upload-zone" id="uploadZone">
         <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/tiff" hidden>
@@ -147,7 +164,7 @@
   </main>
 
   <footer>
-    <p>Imprint v0.8.0 — Photo Authenticity Service</p>
+    <p>Imprint v0.9.0 — Photo Authenticity Service</p>
   </footer>
 
   <script src="/static/app.js"></script>

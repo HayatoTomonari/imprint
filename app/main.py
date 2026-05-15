@@ -20,10 +20,13 @@ load_dotenv()
 _BASE = Path(__file__).parent
 
 import numpy as np
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends, Body, Request
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends, Body, Request, Cookie
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import Response, RedirectResponse, JSONResponse
 from fastapi.security import APIKeyHeader
+from jose import jwt, JWTError
+from passlib.context import CryptContext
+import stripe as stripe_lib
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import httpx
@@ -42,9 +45,36 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 # データベース & APIキー認証
 # ──────────────────────────────────────────────
 
-DB_PATH = os.getenv("IMPRINT_DB_PATH", "imprint.db")
-# 管理エンドポイントの保護キー。本番では必ず環境変数で設定すること。
-ADMIN_KEY = os.getenv("IMPRINT_ADMIN_KEY", "")
+DB_PATH    = os.getenv("IMPRINT_DB_PATH", "imprint.db")
+ADMIN_KEY  = os.getenv("IMPRINT_ADMIN_KEY", "")
+SITE_URL   = os.getenv("SITE_URL", "https://api.imprint-digital.jp")
+
+# JWT
+JWT_SECRET    = os.getenv("JWT_SECRET", secrets.token_hex(32))
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRY_DAYS = 7
+
+# パスワードハッシュ
+_pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Stripe
+STRIPE_SECRET_KEY      = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET  = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_BUSINESS_PRICE  = os.getenv("STRIPE_BUSINESS_PRICE_ID", "")
+if STRIPE_SECRET_KEY:
+    stripe_lib.api_key = STRIPE_SECRET_KEY
+
+# プランごとの月次上限（None=無制限）
+PLAN_LIMITS: dict[str, int | None] = {
+    "starter":    50,
+    "business":   1000,
+    "enterprise": None,
+}
+PLAN_LABELS: dict[str, str] = {
+    "starter":    "Starter（無料）",
+    "business":   "Business",
+    "enterprise": "Enterprise",
+}
 
 
 def _db() -> sqlite3.Connection:
@@ -56,6 +86,25 @@ def _db() -> sqlite3.Connection:
 def _init_db() -> None:
     conn = _db()
     conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id                TEXT PRIMARY KEY,
+            email             TEXT UNIQUE NOT NULL,
+            password_hash     TEXT NOT NULL,
+            plan              TEXT NOT NULL DEFAULT 'starter',
+            stripe_customer_id TEXT,
+            created_at        TEXT NOT NULL,
+            is_active         INTEGER NOT NULL DEFAULT 1
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS monthly_usage (
+            user_id    TEXT NOT NULL,
+            year_month TEXT NOT NULL,
+            count      INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (user_id, year_month)
+        )
+    """)
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS api_keys (
             id          TEXT PRIMARY KEY,
             key_hash    TEXT UNIQUE NOT NULL,
@@ -63,9 +112,15 @@ def _init_db() -> None:
             created_at  TEXT NOT NULL,
             is_active   INTEGER NOT NULL DEFAULT 1,
             req_count   INTEGER NOT NULL DEFAULT 0,
-            last_used   TEXT
+            last_used   TEXT,
+            user_id     TEXT REFERENCES users(id)
         )
     """)
+    # 既存テーブルへの user_id カラム追加（初回のみ）
+    try:
+        conn.execute("ALTER TABLE api_keys ADD COLUMN user_id TEXT REFERENCES users(id)")
+    except Exception:
+        pass
     conn.execute("""
         CREATE TABLE IF NOT EXISTS timestamps (
             id           TEXT PRIMARY KEY,
@@ -85,6 +140,94 @@ def _hash_key(raw: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+# ── JWT ──────────────────────────────────────────
+
+def _create_session_token(user_id: str) -> str:
+    from datetime import timedelta
+    exp = datetime.now(timezone.utc) + timedelta(days=JWT_EXPIRY_DAYS)
+    return jwt.encode({"sub": user_id, "exp": exp}, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def _decode_session_token(token: str) -> str:
+    """JWT を検証して user_id を返す。失敗時は None"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload.get("sub")
+    except JWTError:
+        return None
+
+
+def _get_user(conn, user_id: str):
+    return conn.execute("SELECT * FROM users WHERE id = ? AND is_active = 1", (user_id,)).fetchone()
+
+
+# ── 月次利用制限 ──────────────────────────────────
+
+def _check_and_increment_usage(conn, user_id: str, plan: str) -> None:
+    limit = PLAN_LIMITS.get(plan)
+    if limit is None:
+        return
+    ym = datetime.now(timezone.utc).strftime("%Y-%m")
+    conn.execute(
+        "INSERT INTO monthly_usage (user_id, year_month, count) VALUES (?, ?, 0) "
+        "ON CONFLICT(user_id, year_month) DO NOTHING",
+        (user_id, ym),
+    )
+    row = conn.execute(
+        "SELECT count FROM monthly_usage WHERE user_id = ? AND year_month = ?",
+        (user_id, ym),
+    ).fetchone()
+    if row and row["count"] >= limit:
+        raise HTTPException(
+            status_code=429,
+            detail=f"月間利用制限（{limit}回）に達しました。プランをアップグレードしてください。",
+        )
+    conn.execute(
+        "UPDATE monthly_usage SET count = count + 1 WHERE user_id = ? AND year_month = ?",
+        (user_id, ym),
+    )
+
+
+def _get_usage(conn, user_id: str) -> int:
+    ym = datetime.now(timezone.utc).strftime("%Y-%m")
+    row = conn.execute(
+        "SELECT count FROM monthly_usage WHERE user_id = ? AND year_month = ?",
+        (user_id, ym),
+    ).fetchone()
+    return row["count"] if row else 0
+
+
+# ── セッション依存関係 ────────────────────────────
+
+async def _current_user_or_none(imprint_session: str = Cookie(default=None)):
+    """Cookie からユーザーを取得。未ログインなら None"""
+    if not imprint_session:
+        return None
+    user_id = _decode_session_token(imprint_session)
+    if not user_id:
+        return None
+    conn = _db()
+    try:
+        return _get_user(conn, user_id)
+    finally:
+        conn.close()
+
+
+async def _require_user(imprint_session: str = Cookie(default=None)):
+    """Cookie からユーザーを取得。未ログインなら 401"""
+    user_id = _decode_session_token(imprint_session or "")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+    conn = _db()
+    try:
+        user = _get_user(conn, user_id)
+        if not user:
+            raise HTTPException(status_code=401, detail="ユーザーが見つかりません")
+        return user
+    finally:
+        conn.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _init_db()
@@ -98,7 +241,7 @@ _admin_key_header = APIKeyHeader(name="X-Admin-Key", auto_error=False)
 
 
 async def require_api_key(x_api_key: str = Depends(_api_key_header)) -> str:
-    """APIキーを検証し、key_id を返す"""
+    """APIキーを検証し、key_id を返す（利用制限なし）"""
     if not x_api_key:
         raise HTTPException(status_code=401, detail="X-API-Key ヘッダーが必要です")
     conn = _db()
@@ -115,6 +258,33 @@ async def require_api_key(x_api_key: str = Depends(_api_key_header)) -> str:
         )
         conn.commit()
         return row["id"]
+    finally:
+        conn.close()
+
+
+async def require_api_key_limited(x_api_key: str = Depends(_api_key_header)) -> str:
+    """APIキーを検証し、月次利用制限をチェックして key_id を返す"""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="X-API-Key ヘッダーが必要です")
+    conn = _db()
+    try:
+        row = conn.execute(
+            "SELECT id, user_id FROM api_keys WHERE key_hash = ? AND is_active = 1",
+            (_hash_key(x_api_key),),
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=401, detail="APIキーが無効または無効化されています")
+        key_id, user_id = row["id"], row["user_id"]
+        if user_id:
+            user = conn.execute("SELECT plan FROM users WHERE id = ?", (user_id,)).fetchone()
+            if user:
+                _check_and_increment_usage(conn, user_id, user["plan"])
+        conn.execute(
+            "UPDATE api_keys SET req_count = req_count + 1, last_used = ? WHERE id = ?",
+            (datetime.now(timezone.utc).isoformat(), key_id),
+        )
+        conn.commit()
+        return key_id
     finally:
         conn.close()
 
@@ -708,20 +878,242 @@ def compute_authenticity_score(exif: dict, ela: dict, file_size_bytes: int,
 # ──────────────────────────────────────────────
 
 @app.get("/", include_in_schema=False)
-async def ui_index(request: Request):
+async def ui_index(request: Request, imprint_session: str = Cookie(default=None)):
+    user_id = _decode_session_token(imprint_session or "")
+    if not user_id:
+        return RedirectResponse("/login", status_code=302)
+    conn = _db()
+    try:
+        user = _get_user(conn, user_id)
+        if not user:
+            resp = RedirectResponse("/login", status_code=302)
+            resp.delete_cookie("imprint_session")
+            return resp
+        # ユーザーの API キーを取得
+        key_row = conn.execute(
+            "SELECT name FROM api_keys WHERE user_id = ? AND is_active = 1 LIMIT 1",
+            (user_id,),
+        ).fetchone()
+        # API キーの raw 値はDBに持たないため、ダッシュボード用の表示キーは別途発行済みのものを使う
+        # フロントに渡す API キーは Cookie セッション経由で /auth/me から取得させる
+        usage = _get_usage(conn, user_id)
+        limit = PLAN_LIMITS.get(user["plan"])
+    finally:
+        conn.close()
     return _templates.TemplateResponse(
         "index.html", {
-            "request": request,
-            "api_key": _WEB_API_KEY,
+            "request":      request,
+            "api_key":      "",          # JS が /auth/apikey から取得
             "network_name": _network_name(),
-            "chain_id": POLYGON_CHAIN_ID,
+            "chain_id":     POLYGON_CHAIN_ID,
             "tsa_providers": [
                 {"key": k, "name": v["name"], "description": v["description"]}
                 for k, v in _TSA_PROVIDERS.items()
             ],
-            "default_tsa": _DEFAULT_TSA_KEY,
+            "default_tsa":  _DEFAULT_TSA_KEY,
+            "user_email":   user["email"],
+            "user_plan":    user["plan"],
+            "plan_label":   PLAN_LABELS.get(user["plan"], user["plan"]),
+            "usage_count":  usage,
+            "usage_limit":  limit if limit is not None else "無制限",
+            "stripe_enabled": bool(STRIPE_SECRET_KEY and STRIPE_BUSINESS_PRICE),
         }
     )
+
+# ──────────────────────────────────────────────
+# 認証エンドポイント
+# ──────────────────────────────────────────────
+
+@app.get("/login", include_in_schema=False)
+async def login_page(request: Request, imprint_session: str = Cookie(default=None)):
+    if _decode_session_token(imprint_session or ""):
+        return RedirectResponse("/", status_code=302)
+    return _templates.TemplateResponse("login.html", {"request": request, "error": ""})
+
+
+@app.get("/register", include_in_schema=False)
+async def register_page(request: Request, imprint_session: str = Cookie(default=None)):
+    if _decode_session_token(imprint_session or ""):
+        return RedirectResponse("/", status_code=302)
+    return _templates.TemplateResponse("register.html", {"request": request, "error": ""})
+
+
+@app.post("/auth/register", include_in_schema=False)
+async def auth_register(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    password_confirm: str = Form(...),
+):
+    if password != password_confirm:
+        return _templates.TemplateResponse("register.html", {"request": request, "error": "パスワードが一致しません"}, status_code=400)
+    if len(password) < 8:
+        return _templates.TemplateResponse("register.html", {"request": request, "error": "パスワードは8文字以上にしてください"}, status_code=400)
+    conn = _db()
+    try:
+        if conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone():
+            return _templates.TemplateResponse("register.html", {"request": request, "error": "このメールアドレスは既に登録されています"}, status_code=400)
+        user_id   = secrets.token_hex(16)
+        pw_hash   = _pwd_ctx.hash(password)
+        now       = datetime.now(timezone.utc).isoformat()
+        conn.execute(
+            "INSERT INTO users (id, email, password_hash, plan, created_at) VALUES (?, ?, ?, 'starter', ?)",
+            (user_id, email, pw_hash, now),
+        )
+        # API キーを自動発行
+        raw_key  = f"imp_{secrets.token_urlsafe(32)}"
+        key_id   = secrets.token_hex(8)
+        conn.execute(
+            "INSERT INTO api_keys (id, key_hash, name, created_at, user_id) VALUES (?, ?, ?, ?, ?)",
+            (key_id, _hash_key(raw_key), email, now, user_id),
+        )
+        # API キーを一時テーブルに保存してダッシュボードで表示
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS user_api_key_display (user_id TEXT PRIMARY KEY, raw_key TEXT, shown INTEGER DEFAULT 0)"
+        )
+        conn.execute(
+            "INSERT OR REPLACE INTO user_api_key_display (user_id, raw_key, shown) VALUES (?, ?, 0)",
+            (user_id, raw_key),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    resp = RedirectResponse("/", status_code=302)
+    resp.set_cookie("imprint_session", _create_session_token(user_id), httponly=True, samesite="lax", max_age=86400 * JWT_EXPIRY_DAYS)
+    return resp
+
+
+@app.post("/auth/login", include_in_schema=False)
+async def auth_login(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+):
+    conn = _db()
+    try:
+        user = conn.execute("SELECT * FROM users WHERE email = ? AND is_active = 1", (email,)).fetchone()
+    finally:
+        conn.close()
+    if not user or not _pwd_ctx.verify(password, user["password_hash"]):
+        return _templates.TemplateResponse("login.html", {"request": request, "error": "メールアドレスまたはパスワードが正しくありません"}, status_code=401)
+    resp = RedirectResponse("/", status_code=302)
+    resp.set_cookie("imprint_session", _create_session_token(user["id"]), httponly=True, samesite="lax", max_age=86400 * JWT_EXPIRY_DAYS)
+    return resp
+
+
+@app.get("/auth/logout", include_in_schema=False)
+async def auth_logout():
+    resp = RedirectResponse("/login", status_code=302)
+    resp.delete_cookie("imprint_session")
+    return resp
+
+
+@app.get("/auth/me", tags=["Auth"])
+async def auth_me(user=Depends(_require_user)):
+    return {"id": user["id"], "email": user["email"], "plan": user["plan"]}
+
+
+@app.get("/auth/apikey", tags=["Auth"], include_in_schema=False)
+async def auth_apikey(user=Depends(_require_user)):
+    """ダッシュボード用: ユーザーの API キーを返す（初回のみ raw キーを表示）"""
+    conn = _db()
+    try:
+        conn.execute("CREATE TABLE IF NOT EXISTS user_api_key_display (user_id TEXT PRIMARY KEY, raw_key TEXT, shown INTEGER DEFAULT 0)")
+        disp = conn.execute("SELECT raw_key, shown FROM user_api_key_display WHERE user_id = ?", (user["id"],)).fetchone()
+        if disp and not disp["shown"]:
+            conn.execute("UPDATE user_api_key_display SET shown = 1 WHERE user_id = ?", (user["id"],))
+            conn.commit()
+            return {"raw_key": disp["raw_key"], "first_time": True}
+        row = conn.execute("SELECT id FROM api_keys WHERE user_id = ? AND is_active = 1 LIMIT 1", (user["id"],)).fetchone()
+        return {"key_id": row["id"] if row else None, "first_time": False}
+    finally:
+        conn.close()
+
+
+# ──────────────────────────────────────────────
+# 課金エンドポイント（Stripe）
+# ──────────────────────────────────────────────
+
+@app.post("/billing/checkout", tags=["Billing"])
+async def billing_checkout(user=Depends(_require_user)):
+    if not STRIPE_SECRET_KEY or not STRIPE_BUSINESS_PRICE:
+        raise HTTPException(status_code=503, detail="課金機能が設定されていません")
+    session = stripe_lib.checkout.Session.create(
+        customer_email=user["email"],
+        line_items=[{"price": STRIPE_BUSINESS_PRICE, "quantity": 1}],
+        mode="subscription",
+        success_url=f"{SITE_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{SITE_URL}/",
+        metadata={"user_id": user["id"]},
+    )
+    return {"url": session.url}
+
+
+@app.get("/billing/success", include_in_schema=False)
+async def billing_success(request: Request, imprint_session: str = Cookie(default=None)):
+    user_id = _decode_session_token(imprint_session or "")
+    if not user_id:
+        return RedirectResponse("/login", status_code=302)
+    return _templates.TemplateResponse("billing_success.html", {"request": request})
+
+
+@app.post("/billing/webhook", tags=["Billing"])
+async def billing_webhook(request: Request):
+    if not STRIPE_WEBHOOK_SECRET:
+        raise HTTPException(status_code=503, detail="Webhook が設定されていません")
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature", "")
+    try:
+        event = stripe_lib.Webhook.construct_event(payload, sig, STRIPE_WEBHOOK_SECRET)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Webhook 署名が無効です")
+    conn = _db()
+    try:
+        if event["type"] == "checkout.session.completed":
+            s = event["data"]["object"]
+            user_id = (s.get("metadata") or {}).get("user_id")
+            if user_id:
+                conn.execute("UPDATE users SET plan = 'business', stripe_customer_id = ? WHERE id = ?",
+                             (s.get("customer"), user_id))
+                conn.commit()
+        elif event["type"] in ("customer.subscription.deleted", "customer.subscription.paused"):
+            customer_id = event["data"]["object"].get("customer")
+            if customer_id:
+                conn.execute("UPDATE users SET plan = 'starter' WHERE stripe_customer_id = ?", (customer_id,))
+                conn.commit()
+    finally:
+        conn.close()
+    return {"status": "ok"}
+
+
+# ──────────────────────────────────────────────
+# 管理 API: ユーザー管理
+# ──────────────────────────────────────────────
+
+@app.get("/admin/users", summary="ユーザー一覧", tags=["Admin"])
+def list_users(_: None = Depends(require_admin)):
+    conn = _db()
+    try:
+        rows = conn.execute("SELECT id, email, plan, created_at, is_active FROM users ORDER BY created_at DESC").fetchall()
+        return {"users": [dict(r) for r in rows]}
+    finally:
+        conn.close()
+
+
+@app.put("/admin/users/{user_id}/plan", summary="プラン変更", tags=["Admin"])
+def update_user_plan(user_id: str, plan: str = Body(..., embed=True), _: None = Depends(require_admin)):
+    if plan not in PLAN_LIMITS:
+        raise HTTPException(status_code=400, detail=f"不明なプラン: {plan}")
+    conn = _db()
+    try:
+        result = conn.execute("UPDATE users SET plan = ? WHERE id = ?", (plan, user_id))
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
+        conn.commit()
+        return {"user_id": user_id, "plan": plan}
+    finally:
+        conn.close()
+
 
 @app.get("/health")
 def health():
@@ -908,7 +1300,7 @@ def _get_contract(w3):
 @app.post("/blockchain/register", summary="写真ハッシュをブロックチェーンに記録する", tags=["Blockchain"])
 async def blockchain_register(
     file: UploadFile = File(...),
-    _key_id: str = Depends(require_api_key),
+    _key_id: str = Depends(require_api_key_limited),
 ):
     """
     画像のSHA-256ハッシュと真正性スコアをPolygonチェーンに永久記録します。
@@ -1308,7 +1700,7 @@ async def list_timestamp_providers(_key_id: str = Depends(require_api_key)):
 async def timestamp_request(
     file: UploadFile = File(...),
     tsa: str = Form(default=None),
-    _key_id: str = Depends(require_api_key),
+    _key_id: str = Depends(require_api_key_limited),
 ):
     """
     画像の SHA-256 ハッシュに対して RFC 3161 準拠のタイムスタンプを TSA に要求し、
@@ -1692,7 +2084,7 @@ def _info_table(rows: list, width) -> Table:
 @app.post("/verify", summary="写真の真正性を検証する", tags=["Verification"])
 async def verify_image(
     file: UploadFile = File(...),
-    _key_id: str = Depends(require_api_key),
+    _key_id: str = Depends(require_api_key_limited),
 ):
     """
     画像をアップロードして真正性を検証します。
@@ -1759,7 +2151,7 @@ async def verify_image(
 @app.post("/certificate", summary="証明書PDFを発行する", tags=["Verification"])
 async def issue_certificate(
     file: UploadFile = File(...),
-    _key_id: str = Depends(require_api_key),
+    _key_id: str = Depends(require_api_key_limited),
 ):
     """
     画像を検証し、結果をPDF証明書として発行します。
@@ -1817,7 +2209,7 @@ async def issue_certificate(
 @app.post("/hash", summary="SHA-256ハッシュのみ取得（軽量版）", tags=["Verification"])
 async def get_hash_only(
     file: UploadFile = File(...),
-    _key_id: str = Depends(require_api_key),
+    _key_id: str = Depends(require_api_key_limited),
 ):
     """画像のSHA-256ハッシュのみを高速に返します"""
     raw_bytes = await file.read()

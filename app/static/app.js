@@ -1,7 +1,63 @@
-const _cfg      = document.getElementById('config');
-const API_KEY   = _cfg.dataset.apiKey;
-const NETWORK   = _cfg.dataset.network;
-const CHAIN_ID  = parseInt(_cfg.dataset.chainId, 10);
+const _cfg        = document.getElementById('config');
+let   API_KEY     = _cfg.dataset.apiKey;
+const NETWORK     = _cfg.dataset.network;
+const CHAIN_ID    = parseInt(_cfg.dataset.chainId, 10);
+const STRIPE_ON   = _cfg.dataset.stripe === 'true';
+const USER_PLAN   = _cfg.dataset.plan;
+
+// ── API キーをサーバーから取得してダッシュボードに表示 ──
+(async function loadApiKey() {
+  const valueEl   = document.getElementById('apikeyValue');
+  const noticeEl  = document.getElementById('apikeyFirstTime');
+  try {
+    const res  = await fetch('/auth/apikey', { credentials: 'same-origin' });
+    if (!res.ok) { valueEl.textContent = '(取得失敗)'; return; }
+    const data = await res.json();
+    if (data.first_time && data.raw_key) {
+      API_KEY = data.raw_key;
+      valueEl.textContent = data.raw_key;
+      noticeEl.classList.remove('hidden');
+    } else if (data.key_id) {
+      API_KEY = '';
+      valueEl.textContent = `imp_${'*'.repeat(32)}  (IDのみ表示: ${data.key_id})`;
+    } else {
+      valueEl.textContent = '(APIキーなし)';
+    }
+  } catch {
+    valueEl.textContent = '(取得失敗)';
+  }
+})();
+
+// ── アップグレードボタン ──
+(function initUpgradeBtn() {
+  const btn = document.getElementById('upgradeBtn');
+  if (!btn) return;
+  if (STRIPE_ON && USER_PLAN === 'starter') {
+    btn.classList.remove('hidden');
+    btn.addEventListener('click', upgradeToB);
+  }
+})();
+
+async function upgradeToB() {
+  const btn = document.getElementById('upgradeBtn');
+  btn.textContent = '処理中...';
+  btn.style.pointerEvents = 'none';
+  try {
+    const res  = await fetch('/billing/checkout', { method: 'POST', credentials: 'same-origin' });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert(data.detail || 'エラーが発生しました');
+      btn.textContent = 'Business にアップグレード（¥9,800/月）';
+      btn.style.pointerEvents = '';
+    }
+  } catch {
+    alert('サーバーへの接続に失敗しました');
+    btn.textContent = 'Business にアップグレード（¥9,800/月）';
+    btn.style.pointerEvents = '';
+  }
+}
 
 // ネットワークバッジを初期表示
 (function () {

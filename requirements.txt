@@ -12,3 +12,6 @@ aiofiles>=23.0.0
 httpx>=0.27.0
 rfc3161ng>=0.1.1
 certifi>=2024.0.0
+passlib[bcrypt]>=1.7.4
+python-jose[cryptography]>=3.3.0
+stripe>=8.0.0
