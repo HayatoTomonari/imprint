@@ -132,6 +132,13 @@ def _init_db() -> None:
             requested_at TEXT NOT NULL
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS user_api_key_display (
+            user_id  TEXT PRIMARY KEY,
+            raw_key  TEXT,
+            shown    INTEGER NOT NULL DEFAULT 0
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -969,9 +976,6 @@ async def auth_register(
         )
         # API キーを一時テーブルに保存してダッシュボードで表示
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS user_api_key_display (user_id TEXT PRIMARY KEY, raw_key TEXT, shown INTEGER DEFAULT 0)"
-        )
-        conn.execute(
             "INSERT OR REPLACE INTO user_api_key_display (user_id, raw_key, shown) VALUES (?, ?, 0)",
             (user_id, raw_key),
         )
@@ -1018,7 +1022,6 @@ async def auth_apikey(user=Depends(_require_user)):
     """ダッシュボード用: ユーザーの API キーを返す（初回のみ raw キーを表示）"""
     conn = _db()
     try:
-        conn.execute("CREATE TABLE IF NOT EXISTS user_api_key_display (user_id TEXT PRIMARY KEY, raw_key TEXT, shown INTEGER DEFAULT 0)")
         disp = conn.execute("SELECT raw_key, shown FROM user_api_key_display WHERE user_id = ?", (user["id"],)).fetchone()
         if disp and not disp["shown"]:
             conn.execute("UPDATE user_api_key_display SET shown = 1 WHERE user_id = ?", (user["id"],))
