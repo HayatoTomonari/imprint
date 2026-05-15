@@ -4,15 +4,39 @@
 写真の真正性を技術的に担保するB2B SaaS「Imprint」のバックエンドAPI。
 保険・不動産・法務向けに、写真が本物かつ無加工であることを証明する。
 
+## 本番環境 URLs
+
+| サービス | URL |
+|---------|-----|
+| マーケティングサイト | https://imprint-digital.jp |
+| API / ダッシュボード | https://api.imprint-digital.jp |
+| API ドキュメント | https://api.imprint-digital.jp/docs |
+| GitHub | https://github.com/HayatoTomonari/imprint |
+
+## インフラ構成
+
+| コンポーネント | サービス | 備考 |
+|------------|---------|------|
+| マーケティングサイト | Cloudflare Pages | `website/` フォルダを自動デプロイ |
+| API サーバー | Render（無料プラン） | GitHub push で自動デプロイ |
+| DB | SQLite（Render 一時ディスク） | 再デプロイでリセット。永続化は Starter プラン（$7/月）へ移行 |
+| DNS | Cloudflare（imprint-digital.jp） | ネームサーバー: arxie/donna.ns.cloudflare.com |
+| ドメイン登録 | ムームードメイン | imprint-digital.jp |
+
 ## プロジェクトパス
 ```
 C:\Users\info\PycharmProjects\Imprint\
 ├── app/
-│   └── main.py            ← メインAPI（v0.6.0）
+│   └── main.py            ← メインAPI（v0.9.0）
 ├── contracts/
 │   └── ImprintRegistry.sol ← Solidityコントラクト
 ├── scripts/
 │   └── deploy_contract.py  ← コントラクトデプロイスクリプト
+├── website/               ← マーケティングサイト（Cloudflare Pages）
+│   ├── index.html
+│   ├── style.css
+│   └── app.js
+├── render.yaml            ← Render デプロイ設定
 ├── .env                   ← 環境変数（gitignore済み）
 ├── imprint.db             ← APIキー管理DB（SQLite、gitignore済み）
 ├── requirements.txt
@@ -189,5 +213,14 @@ python -m uvicorn app.main:app --reload
   - `GET /timestamp/providers` — 全 TSA で `chain_verification: true`、`verification_method: "cacert_url" | "aia"` を返す
 - **バージョン**: `0.9.0`
 
+### 本番デプロイ（v1.0.0）
+- **マーケティングサイト**: `website/` を Cloudflare Pages でホスト（`https://imprint-digital.jp`）
+- **API サーバー**: Render 無料プランで稼働（`https://api.imprint-digital.jp`）
+- **CORS**: `ALLOWED_ORIGINS` 環境変数で `imprint-digital.jp` と `imprint-dje.pages.dev` を許可
+- **DNS**: Cloudflare で管理。`api` サブドメインは Render へ CNAME
+- **注意**: 無料プランのため再デプロイで DB リセット。本番運用は Render Starter（$7/月）へ移行推奨
+
 ## 次の実装候補（優先度順）
-1. **Polygon Mainnet デプロイ** — オペレーション作業（HANDOFF 内の手順を参照）
+1. **Render Starter プランへ移行** — DB 永続化（再デプロイで APIキーが消えなくなる）
+2. **Polygon Mainnet デプロイ** — オペレーション作業（HANDOFF 内の手順を参照）
+3. **HuggingFace API キー設定** — Render 環境変数に追加で AI生成検出を有効化
