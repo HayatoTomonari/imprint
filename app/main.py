@@ -1879,209 +1879,365 @@ async def timestamp_verify(
 
 
 def build_certificate_pdf(verify_result: dict) -> bytes:
-    """検証結果からPDF証明書を生成する"""
-    buf = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buf, pagesize=A4,
-        leftMargin=20*mm, rightMargin=20*mm,
-        topMargin=20*mm, bottomMargin=20*mm,
-    )
+    """検証結果から日本語PDF証明書を生成する"""
+    from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 
-    styles = getSampleStyleSheet()
-    W = A4[0] - 40*mm
+    # 日本語フォント登録
+    pdfmetrics.registerFont(UnicodeCIDFont("HeiseiKakuGo-W5"))
+    pdfmetrics.registerFont(UnicodeCIDFont("HeiseiMin-W3"))
+    JA      = "HeiseiKakuGo-W5"   # ゴシック体（見出し・UI）
+    JA_SERIF = "HeiseiMin-W3"      # 明朝体（本文）
 
-    style_title = ParagraphStyle("title", fontSize=22, leading=28,
-                                  alignment=TA_CENTER, spaceAfter=4,
-                                  textColor=colors.HexColor("#111111"))
-    style_subtitle = ParagraphStyle("subtitle", fontSize=10, leading=14,
-                                     alignment=TA_CENTER, spaceAfter=2,
-                                     textColor=colors.HexColor("#666666"))
-    style_h2 = ParagraphStyle("h2", fontSize=12, leading=16,
-                               spaceBefore=14, spaceAfter=6,
-                               textColor=colors.HexColor("#111111"),
-                               fontName="Helvetica-Bold")
-    style_body = ParagraphStyle("body", fontSize=9, leading=14,
-                                 textColor=colors.HexColor("#333333"))
-    style_mono = ParagraphStyle("mono", fontSize=7.5, leading=12,
-                                 fontName="Courier",
-                                 textColor=colors.HexColor("#333333"),
-                                 wordWrap="CJK")
+    # カラー定義
+    NAVY   = colors.HexColor("#0f172a")
+    INDIGO = colors.HexColor("#4f46e5")
+    SLATE  = colors.HexColor("#64748b")
+    BORDER = colors.HexColor("#e2e8f0")
+    LIGHT  = colors.HexColor("#f8fafc")
+    WHITE  = colors.white
 
-    auth = verify_result["authenticity"]
-    score = auth["score"]
+    auth    = verify_result["authenticity"]
+    score   = auth["score"]
     verdict = auth["verdict"]
-    score_color = (
+    SCORE_C = (
         colors.HexColor("#16a34a") if verdict == "high"
         else colors.HexColor("#d97706") if verdict == "medium"
         else colors.HexColor("#dc2626")
     )
+    VERDICT_JP = {
+        "high":   ("真正性：高",   "本写真は多層解析の結果、高い真正性が認められます。"),
+        "medium": ("真正性：中",   "本写真は一部に注意すべき点が検出されました。"),
+        "low":    ("真正性：低",   "本写真は加工・改ざんの疑いが検出されました。"),
+    }
+    verdict_label, verdict_desc = VERDICT_JP.get(verdict, (verdict, ""))
 
+    cert_no  = verify_result["hash"]["value"][:16].upper()
+    now_str  = datetime.now(timezone.utc).strftime("%Y年%m月%d日  %H:%M UTC")
+
+    PAGE_W, PAGE_H = A4
+    BORDER_M = 10 * mm    # 外枠の余白
+    HEADER_H = 38 * mm    # ヘッダーの高さ
+    SCORE_H  = 32 * mm    # スコアバナーの高さ
+    FOOT_H   = 20 * mm    # フッターの高さ
+    ML       = 18 * mm    # コンテンツ左右マージン
+    CW       = PAGE_W - 2 * ML   # コンテンツ幅
+
+    buf = io.BytesIO()
+
+    # ── ページ装飾を描画するコールバック ──
+    def draw_page_decoration(canvas_obj, doc):
+        c = canvas_obj
+        c.saveState()
+
+        # 外枠（二重線）
+        c.setStrokeColor(colors.HexColor("#334155"))
+        c.setLineWidth(1.5)
+        c.rect(BORDER_M, BORDER_M, PAGE_W - 2*BORDER_M, PAGE_H - 2*BORDER_M, fill=0, stroke=1)
+        c.setStrokeColor(colors.HexColor("#cbd5e1"))
+        c.setLineWidth(0.4)
+        c.rect(BORDER_M + 1.5*mm, BORDER_M + 1.5*mm,
+               PAGE_W - 2*BORDER_M - 3*mm, PAGE_H - 2*BORDER_M - 3*mm, fill=0, stroke=1)
+
+        # ── ヘッダー背景 ──
+        hdr_y = PAGE_H - BORDER_M - HEADER_H
+        c.setFillColor(NAVY)
+        c.rect(BORDER_M, hdr_y, PAGE_W - 2*BORDER_M, HEADER_H, fill=1, stroke=0)
+
+        # インディゴのアクセントライン（ヘッダー下端）
+        c.setFillColor(INDIGO)
+        c.rect(BORDER_M, hdr_y, PAGE_W - 2*BORDER_M, 2*mm, fill=1, stroke=0)
+
+        # ロゴ "Imprint"
+        c.setFillColor(WHITE)
+        c.setFont(JA, 22)
+        c.drawString(ML, hdr_y + 24*mm, "Imprint")
+
+        # ロゴ下のタグライン
+        c.setFont(JA, 7.5)
+        c.setFillColor(colors.HexColor("#94a3b8"))
+        c.drawString(ML, hdr_y + 19*mm, "Photo Authenticity Service")
+
+        # 区切り縦線
+        c.setStrokeColor(colors.HexColor("#334155"))
+        c.setLineWidth(0.8)
+        c.line(ML + 42*mm, hdr_y + 8*mm, ML + 42*mm, hdr_y + 32*mm)
+
+        # 右側タイトル
+        c.setFillColor(WHITE)
+        c.setFont(JA, 15)
+        title_text = "写真真正性認証証明書"
+        tw = c.stringWidth(title_text, JA, 15)
+        c.drawString(PAGE_W - ML - tw, hdr_y + 26*mm, title_text)
+
+        # 証明書番号・発行日時
+        c.setFont(JA, 7.5)
+        c.setFillColor(colors.HexColor("#94a3b8"))
+        c.drawRightString(PAGE_W - ML, hdr_y + 20*mm, f"証明書番号：IMP-{cert_no}")
+        c.drawRightString(PAGE_W - ML, hdr_y + 14.5*mm, f"発 行 日 時：{now_str}")
+        c.drawRightString(PAGE_W - ML, hdr_y + 9*mm,   "発 行 機 関：Imprint Photo Authenticity Service")
+
+        # ── スコアバナー ──
+        sb_y = hdr_y - SCORE_H
+        c.setFillColor(LIGHT)
+        c.rect(BORDER_M, sb_y, PAGE_W - 2*BORDER_M, SCORE_H, fill=1, stroke=0)
+
+        # スコア数値
+        c.setFont(JA, 44)
+        c.setFillColor(SCORE_C)
+        c.drawString(ML, sb_y + 14*mm, str(score))
+        score_w = c.stringWidth(str(score), JA, 44)
+
+        # / 100点
+        c.setFont(JA, 13)
+        c.setFillColor(colors.HexColor("#94a3b8"))
+        c.drawString(ML + score_w + 2.5*mm, sb_y + 16*mm, "/ 100点")
+
+        # 判定ラベル
+        c.setFont(JA, 14)
+        c.setFillColor(SCORE_C)
+        c.drawString(ML + 52*mm, sb_y + 22*mm, f"● {verdict_label}")
+
+        # 判定説明文
+        c.setFont(JA, 8)
+        c.setFillColor(SLATE)
+        c.drawString(ML + 52*mm, sb_y + 16*mm, verdict_desc)
+        c.drawString(ML + 52*mm, sb_y + 11*mm, "多層解析（EXIF・ELA・AI検出・ハッシュ・タイムスタンプ）による総合評価")
+
+        # スコアプログレスバー
+        bar_x, bar_y, bar_h = ML, sb_y + 4.5*mm, 3.5*mm
+        c.setFillColor(BORDER)
+        c.roundRect(bar_x, bar_y, CW, bar_h, 1.5*mm, fill=1, stroke=0)
+        fill_w = max(CW * score / 100, 4*mm)
+        c.setFillColor(SCORE_C)
+        c.roundRect(bar_x, bar_y, fill_w, bar_h, 1.5*mm, fill=1, stroke=0)
+
+        # バナー下境界線
+        c.setStrokeColor(BORDER)
+        c.setLineWidth(0.5)
+        c.line(BORDER_M, sb_y, PAGE_W - BORDER_M, sb_y)
+
+        # ── フッター ──
+        foot_top = BORDER_M + FOOT_H
+        c.setStrokeColor(BORDER)
+        c.setLineWidth(0.5)
+        c.line(ML, foot_top, PAGE_W - ML, foot_top)
+
+        c.setFont(JA, 6.8)
+        c.setFillColor(colors.HexColor("#94a3b8"))
+        c.drawString(ML, foot_top - 4*mm,
+                     "本証明書は Imprint Photo Authenticity Service（https://imprint-digital.jp）が発行した電子文書です。")
+        c.drawString(ML, foot_top - 8*mm,
+                     "記載内容は参考情報です。法的効力の保証を目的とするものではありません。重要な判断には専門家へのご相談をお勧めします。")
+
+        c.setFillColor(colors.HexColor("#cbd5e1"))
+        c.drawRightString(PAGE_W - ML, foot_top - 6*mm, f"© 2026 Imprint  |  IMP-{cert_no}")
+
+        c.restoreState()
+
+    # ── パラグラフスタイル定義 ──
+    def s_h2():
+        return ParagraphStyle("h2", fontName=JA, fontSize=9.5, leading=14,
+                              textColor=NAVY, spaceBefore=0, spaceAfter=3)
+
+    def s_body():
+        return ParagraphStyle("body", fontName=JA_SERIF, fontSize=8, leading=13,
+                              textColor=SLATE, spaceAfter=3)
+
+    # ── セクションヘッダー（左インディゴバー付き） ──
+    def section_header(label: str):
+        tbl = Table(
+            [["", Paragraph(label, s_h2())]],
+            colWidths=[3*mm, CW - 3*mm],
+            rowHeights=[9*mm],
+        )
+        tbl.setStyle(TableStyle([
+            ("BACKGROUND",    (0, 0), (-1, -1), LIGHT),
+            ("BACKGROUND",    (0, 0), (0,  0),  INDIGO),
+            ("TOPPADDING",    (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING",   (1, 0), (1,  0),  8),
+            ("LEFTPADDING",   (0, 0), (0,  0),  0),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+            ("BOX", (0, 0), (-1, -1), 0.4, BORDER),
+        ]))
+        return tbl
+
+    # ── KVテーブル ──
+    def kv_table(rows: list):
+        col1 = 50*mm
+        table = Table(rows, colWidths=[col1, CW - col1])
+        table.setStyle(TableStyle([
+            ("FONTNAME",      (0, 0), (0, -1), JA),
+            ("FONTNAME",      (1, 0), (1, -1), JA_SERIF),
+            ("FONTSIZE",      (0, 0), (-1, -1), 8.5),
+            ("LEADING",       (0, 0), (-1, -1), 13),
+            ("TEXTCOLOR",     (0, 0), (0, -1), SLATE),
+            ("TEXTCOLOR",     (1, 0), (1, -1), NAVY),
+            ("ROWBACKGROUNDS",(0, 0), (-1, -1), [WHITE, LIGHT]),
+            ("TOPPADDING",    (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
+            ("BOX",           (0, 0), (-1, -1), 0.4, BORDER),
+            ("LINEBELOW",     (0, 0), (-1, -2), 0.3, BORDER),
+        ]))
+        return table
+
+    # ── コンテンツ組み立て ──
     story = []
+    SP = Spacer(1, 3*mm)
 
-    # ── ヘッダー ──
-    story.append(Paragraph("Imprint", style_title))
-    story.append(Paragraph("Photo Authenticity Certificate", style_subtitle))
-    story.append(Spacer(1, 6*mm))
-    story.append(HRFlowable(width="100%", thickness=1.5,
-                             color=colors.HexColor("#111111")))
-    story.append(Spacer(1, 4*mm))
-
-    # ── スコアバナー ──
-    score_table = Table(
-        [[
-            Paragraph(f'<font size="32" color="{score_color.hexval()}">'
-                      f'<b>{score}</b></font>', style_body),
-            Paragraph(f'<font size="13"><b>{auth["verdict_label"]}</b></font><br/>'
-                      f'<font size="9" color="#666666">Authenticity Score / 100</font>',
-                      style_body),
-        ]],
-        colWidths=[40*mm, W - 40*mm],
-    )
-    score_table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN", (0, 0), (0, 0), "CENTER"),
-        ("ALIGN", (1, 0), (1, 0), "LEFT"),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [colors.HexColor("#f9f9f9")]),
-        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#dddddd")),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-    ]))
-    story.append(score_table)
-    story.append(Spacer(1, 5*mm))
-
-    # ── ファイル情報 ──
+    # ファイル情報
     f = verify_result["file"]
-    story.append(Paragraph("File Information", style_h2))
-    file_data = [
-        ["Filename", f["filename"]],
-        ["Format", f"{f['format']} ({f['content_type']})"],
-        ["Dimensions", f"{f['width']} × {f['height']} px"],
-        ["File size", f"{f['size_bytes']:,} bytes ({f['size_bytes']/1024/1024:.2f} MB)"],
-        ["Verified at", verify_result["verified_at"]],
-    ]
-    story.append(_info_table(file_data, W))
+    story.append(section_header("ファイル情報"))
+    story.append(kv_table([
+        ["ファイル名",     f["filename"]],
+        ["フォーマット",   f"{f['format']} ({f['content_type']})"],
+        ["解　像　度",     f"{f['width']} × {f['height']} px"],
+        ["ファイルサイズ", f"{f['size_bytes']:,} bytes（{f['size_bytes']/1024/1024:.2f} MB）"],
+        ["検 証 日 時",    verify_result["verified_at"]],
+    ]))
+    story.append(SP)
 
-    # ── ハッシュ ──
-    story.append(Spacer(1, 3*mm))
-    story.append(Paragraph("SHA-256 Hash", style_h2))
-    story.append(Paragraph(verify_result["hash"]["value"], style_mono))
-    story.append(Spacer(1, 1*mm))
+    # SHA-256
+    story.append(section_header("電子指紋（SHA-256 ハッシュ値）"))
+    hash_val = verify_result["hash"]["value"]
     story.append(Paragraph(
-        "This hash uniquely identifies the original image. "
-        "Any modification to the file will produce a completely different hash.",
-        style_body))
+        f'<font name="Courier" size="7.5" color="#334155">{hash_val}</font>',
+        ParagraphStyle("hash_p", fontName=JA, fontSize=8, leading=13,
+                       backColor=colors.HexColor("#f1f5f9"),
+                       borderPadding=(5, 8, 5, 8), spaceAfter=2),
+    ))
+    story.append(Paragraph(
+        "1ピクセルでも改変されると全く異なる値になります。この写真固有の64文字の識別子です。",
+        s_body(),
+    ))
+    story.append(SP)
 
-    # ── EXIF ──
+    # EXIF
     exif = verify_result["exif"]
-    story.append(Paragraph("Camera & EXIF Metadata", style_h2))
-    exif_data = [
-        ["EXIF Present", "Yes" if exif["has_exif"] else "No"],
-        ["Camera", f"{exif.get('camera_make', '—')} {exif.get('camera_model', '')}".strip()],
-        ["Captured at", exif.get("datetime_original") or "—"],
-        ["Focal length", f"{exif['focal_length']} mm" if exif.get("focal_length") else "—"],
-        ["ISO", str(exif["iso"]) if exif.get("iso") else "—"],
-        ["GPS", f"{exif['gps_latitude']}, {exif['gps_longitude']}"
-         if exif.get("gps_latitude") else "Not recorded"],
-        ["Software", exif.get("software") or "—"],
-        ["Software type", exif.get("software_category", "—")],
-    ]
-    story.append(_info_table(exif_data, W))
+    story.append(section_header("カメラ・撮影情報（EXIFメタデータ）"))
+    gps_str = (f"{exif['gps_latitude']:.6f}, {exif['gps_longitude']:.6f}"
+               if exif.get("gps_latitude") else "未記録")
+    story.append(kv_table([
+        ["EXIFデータ",    "記録あり" if exif["has_exif"] else "記録なし"],
+        ["カ　メ　ラ",   (f"{exif.get('camera_make','')}"
+                          f" {exif.get('camera_model','')}").strip() or "—"],
+        ["撮 影 日 時",   exif.get("datetime_original") or "—"],
+        ["焦 点 距 離",   f"{exif['focal_length']} mm" if exif.get("focal_length") else "—"],
+        ["ISO 感 度",     str(exif["iso"]) if exif.get("iso") else "—"],
+        ["GPS 座 標",     gps_str],
+        ["ソフトウェア",  exif.get("software") or "—"],
+        ["ソフト種別",    exif.get("software_category", "—")],
+    ]))
+    story.append(SP)
 
-    # ── ELA ──
+    # ELA
     ela = verify_result["ela"]
-    story.append(Paragraph("Error Level Analysis (ELA)", style_h2))
-    ela_data = [
-        ["Verdict", ela["ela_verdict"].replace("_", " ").title()],
-        ["Mean diff", str(ela["ela_mean_diff"])],
-        ["Max diff", str(ela["ela_max_diff"])],
-        ["Suspicious pixel ratio", f"{ela['ela_suspicious_ratio']:.2%}"],
-    ]
-    story.append(_info_table(ela_data, W))
+    ELA_JP = {
+        "clean":        "加工なし（クリーン）",
+        "suspicious":   "要注意（一部に異常パターンあり）",
+        "likely_edited":"加工・改ざんの疑いあり",
+        "unknown":      "判定不能",
+        "error":        "解析エラー",
+    }
+    story.append(section_header("加工・改ざん解析（Error Level Analysis）"))
+    story.append(kv_table([
+        ["判　　定",          ELA_JP.get(ela["ela_verdict"], ela["ela_verdict"])],
+        ["平均誤差（Mean）",  str(ela["ela_mean_diff"])],
+        ["最大誤差（Max）",   str(ela["ela_max_diff"])],
+        ["不自然ピクセル比",  f"{ela['ela_suspicious_ratio']:.2%}"],
+    ]))
+    story.append(SP)
 
-    # ── AI生成画像検出 ──
+    # AI検出
     ai = verify_result.get("ai_detection")
     if ai:
-        story.append(Paragraph("AI-Generated Image Detection", style_h2))
-        ai_verdict_label = {
-            "ai_generated": "AI Generated",
-            "suspicious": "Suspicious",
-            "likely_real": "Likely Real",
-            "unknown": "Unknown",
-        }.get(ai.get("verdict", "unknown"), "Unknown")
-        ai_rows = [["Verdict", ai_verdict_label],
-                   ["Method", ai.get("method") or "—"],
-                   ["Detail", ai.get("detail") or "—"]]
+        AI_JP = {
+            "ai_generated": "AI生成画像（高確率）",
+            "suspicious":   "AI生成の疑いあり",
+            "likely_real":  "本物の写真（AI生成でない）",
+            "unknown":      "判定不能",
+        }
+        story.append(section_header("AI生成画像検査"))
+        ai_rows = [
+            ["判　　定",   AI_JP.get(ai.get("verdict", "unknown"), "不明")],
+            ["検 出 方 法", ai.get("method") or "—"],
+            ["詳　　細",   ai.get("detail") or "—"],
+        ]
         if ai.get("ai_score") is not None:
-            ai_rows += [["AI score", f"{ai['ai_score']:.1%}"],
-                        ["Real score", f"{ai['real_score']:.1%}"]]
-        story.append(_info_table(ai_rows, W))
+            ai_rows += [
+                ["AI生成スコア", f"{ai['ai_score']:.1%}"],
+                ["実写スコア",   f"{ai['real_score']:.1%}"],
+            ]
+        story.append(kv_table(ai_rows))
+        story.append(SP)
 
-    # ── RFC 3161 タイムスタンプ ──
+    # RFC 3161
     ts = verify_result.get("timestamp")
     if ts:
-        story.append(Paragraph("RFC 3161 Timestamp", style_h2))
-        ts_rows = [
-            ["Status", "Certified"],
-            ["TSA", ts["tsa"]],
-            ["Certified at (UTC)", ts["tsa_time"]],
-            ["Serial No", ts.get("serial_no") or "—"],
-            ["Recorded at", ts["requested_at"]],
-        ]
-        story.append(_info_table(ts_rows, W))
-        story.append(Spacer(1, 1*mm))
+        story.append(section_header("RFC 3161 タイムスタンプ認証"))
+        story.append(kv_table([
+            ["ス テ ー タ ス",  "認定済み  ✓"],
+            ["タイムスタンプ局", ts["tsa"]],
+            ["認定日時（UTC）",  ts["tsa_time"]],
+            ["シリアル番号",     ts.get("serial_no") or "—"],
+            ["取 得 日 時",      ts["requested_at"]],
+        ]))
         story.append(Paragraph(
-            "This timestamp certifies that the image existed at the stated time, "
-            "issued by a trusted Time-Stamping Authority under RFC 3161 / RFC 3628.",
-            style_body,
+            "本写真は RFC 3161 国際標準に準拠した認定タイムスタンプ局の電子署名により、"
+            "上記日時に存在したことが第三者機関によって証明されています。",
+            s_body(),
         ))
+        story.append(SP)
 
-    # ── 減点明細 ──
-    if auth["deductions"] or auth["details"]:
-        story.append(Paragraph("Score Breakdown", style_h2))
-        for d in auth["deductions"]:
-            story.append(Paragraph(
-                f'<font color="#dc2626"><b>{d["penalty"]}</b></font>  '
-                f'{d["factor"]} — {d["reason"]}', style_body))
-        for d in auth["details"]:
-            story.append(Paragraph(
-                f'<font color="#16a34a"><b>✓</b></font>  {d}', style_body))
+    # スコア内訳
+    if auth.get("deductions") or auth.get("details"):
+        story.append(section_header("真正性スコア算出内訳"))
+        rows = []
+        for d in auth.get("deductions", []):
+            rows.append([
+                f'▼{abs(d["penalty"])}点',
+                f'{d["factor"]} — {d["reason"]}',
+            ])
+        for d in auth.get("details", []):
+            rows.append(["✓", d])
+        tbl = Table(rows, colWidths=[18*mm, CW - 18*mm])
+        tbl.setStyle(TableStyle([
+            ("FONTNAME",      (0, 0), (-1, -1), JA),
+            ("FONTSIZE",      (0, 0), (-1, -1), 8),
+            ("LEADING",       (0, 0), (-1, -1), 12),
+            ("TOPPADDING",    (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 8),
+            ("TEXTCOLOR",     (0, 0), (0, -1), colors.HexColor("#dc2626")),
+            ("TEXTCOLOR",     (1, 0), (1, -1), colors.HexColor("#374151")),
+            ("ROWBACKGROUNDS",(0, 0), (-1, -1), [WHITE, LIGHT]),
+            ("BOX",           (0, 0), (-1, -1), 0.4, BORDER),
+            ("LINEBELOW",     (0, 0), (-1, -2), 0.3, BORDER),
+        ]))
+        # 加点行（✓）を緑に
+        for i, d in enumerate(auth.get("deductions", [])):
+            pass  # 減点は赤（デフォルト）
+        for i, _ in enumerate(auth.get("details", [])):
+            row_idx = len(auth.get("deductions", [])) + i
+            tbl.setStyle(TableStyle([
+                ("TEXTCOLOR", (0, row_idx), (0, row_idx), colors.HexColor("#16a34a")),
+            ]))
+        story.append(tbl)
 
-    # ── フッター ──
-    story.append(Spacer(1, 8*mm))
-    story.append(HRFlowable(width="100%", thickness=0.5,
-                             color=colors.HexColor("#cccccc")))
-    story.append(Spacer(1, 2*mm))
-    story.append(Paragraph(
-        "Generated by Imprint — Photo Authenticity Service  |  "
-        "This certificate is for informational purposes only.",
-        ParagraphStyle("footer", fontSize=7.5, alignment=TA_CENTER,
-                       textColor=colors.HexColor("#999999"))))
+    # ── ドキュメント生成 ──
+    TOP_M = BORDER_M + HEADER_H + SCORE_H + 5*mm
+    BOT_M = BORDER_M + FOOT_H + 5*mm
 
-    doc.build(story)
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=ML, rightMargin=ML,
+        topMargin=TOP_M, bottomMargin=BOT_M,
+    )
+    doc.build(story, onFirstPage=draw_page_decoration, onLaterPages=draw_page_decoration)
     buf.seek(0)
     return buf.read()
-
-
-def _info_table(rows: list, width) -> Table:
-    """キー・バリュー形式の情報テーブルを生成する"""
-    col1 = 48*mm
-    table = Table(rows, colWidths=[col1, width - col1])
-    table.setStyle(TableStyle([
-        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-        ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
-        ("FONTSIZE", (0, 0), (-1, -1), 9),
-        ("LEADING", (0, 0), (-1, -1), 13),
-        ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#555555")),
-        ("TEXTCOLOR", (1, 0), (1, -1), colors.HexColor("#111111")),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1),
-         [colors.HexColor("#ffffff"), colors.HexColor("#f5f5f5")]),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("LINEBELOW", (0, -1), (-1, -1), 0.3, colors.HexColor("#dddddd")),
-    ]))
-    return table
 
 
 @app.post("/verify", summary="写真の真正性を検証する", tags=["Verification"])
