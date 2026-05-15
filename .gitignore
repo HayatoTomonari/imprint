@@ -8,6 +8,7 @@ venv/
 *.iml
 .DS_Store
 *.log
+img*.png
 imprint.db
 dist/
 build/
