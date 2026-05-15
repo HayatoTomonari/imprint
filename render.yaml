@@ -12,7 +12,7 @@ services:
       - key: IMPRINT_DB_PATH
         value: /data/imprint.db
       - key: ALLOWED_ORIGINS
-        value: https://imprint-dje.pages.dev
+        value: https://imprint-digital.jp,https://imprint-dje.pages.dev
       - key: IMPRINT_ADMIN_KEY
         sync: false
       - key: POLYGON_RPC_URL
