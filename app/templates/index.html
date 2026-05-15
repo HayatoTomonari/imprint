@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Imprint — 写真真正性検証</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="config" data-api-key="{{ api_key }}" data-network="{{ network_name }}" data-chain-id="{{ chain_id }}" hidden></div>
+
+  <header>
+    <div class="header-inner">
+      <div class="logo">Imprint</div>
+      <div class="tagline">Photo Authenticity Verification</div>
+    </div>
+  </header>
+
+  <main>
+    <section class="upload-section">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/tiff" hidden>
+        <div class="upload-content">
+          <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p class="upload-text">写真をドラッグ＆ドロップ</p>
+          <p class="upload-sub">または<span class="link">クリックして選択</span> · JPEG / PNG / WebP / TIFF · 最大20MB</p>
+        </div>
+      </div>
+    </section>
+
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>検証中...</p>
+    </div>
+
+    <div id="errorBox" class="error-box hidden"></div>
+
+    <section id="results" class="results hidden">
+
+      <!-- スコア + チェックリスト -->
+      <div class="card score-card">
+        <div class="score-gauge">
+          <svg viewBox="0 0 100 100" class="gauge-svg">
+            <circle class="gauge-bg" cx="50" cy="50" r="42"/>
+            <circle class="gauge-fill" id="gaugeFill" cx="50" cy="50" r="42"/>
+          </svg>
+          <div class="score-center">
+            <span class="score-num" id="scoreNum">--</span>
+            <span class="score-label">/ 100</span>
+          </div>
+        </div>
+        <div class="score-meta">
+          <div class="verdict-badge" id="verdictBadge"></div>
+          <div class="filename" id="resultFilename"></div>
+          <ul class="checklist" id="checklist"></ul>
+          <button class="btn-download" id="downloadBtn">PDF証明書をダウンロード</button>
+        </div>
+      </div>
+
+      <!-- 撮影情報 -->
+      <div class="card">
+        <h2>撮影情報</h2>
+        <p class="card-desc">カメラ・日時・場所など、写真に記録された撮影データを確認します。</p>
+        <table class="info-table" id="exifInfo"></table>
+        <div id="exifWarnings"></div>
+      </div>
+
+      <!-- 加工チェック -->
+      <div class="card">
+        <h2>加工・改ざんチェック</h2>
+        <p class="card-desc">画像を高精度に解析し、切り抜き・合成・修正などの痕跡を検出します。</p>
+        <div class="ela-verdict" id="elaVerdict"></div>
+        <table class="info-table" id="elaInfo"></table>
+      </div>
+
+      <!-- AI生成チェック -->
+      <div class="card">
+        <h2>AI生成チェック</h2>
+        <p class="card-desc">Midjourney・DALL-E などのAIが作った画像かどうかを判定します。</p>
+        <div class="ai-verdict" id="aiVerdict"></div>
+        <table class="info-table" id="aiInfo"></table>
+      </div>
+
+      <!-- 証拠として保存する セクションヘッダー -->
+      <div class="section-header">
+        <span>証拠として保存する</span>
+        <span class="section-sub">写真の存在・内容を第三者が検証できる形で残します</span>
+      </div>
+
+      <!-- タイムスタンプ -->
+      <div class="card ts-card">
+        <h2>📅 タイムスタンプ</h2>
+        <p class="card-desc">
+          取得すると、この写真の電子指紋が公的なタイムスタンプ局（FreeTSA.org）に送信されます。認定機関の電子署名付きで「この写真は取得日時に存在した」という証明書が発行され、後から第三者が検証できる形で保存されます。<br>
+          <span class="analogy">郵便局の消印と同じ仕組みで、日時を第三者が保証します。</span>
+        </p>
+        <div id="tsBadge" class="ts-badge ts-none">未取得</div>
+        <table class="info-table" id="tsInfo"></table>
+        <p class="note" id="tsNote"></p>
+        <div class="tsa-selector" id="tsaSelector">
+          <p class="tsa-label">タイムスタンプ局（TSA）を選択</p>
+          {% for p in tsa_providers %}
+          <label class="tsa-option">
+            <input type="radio" name="tsa" value="{{ p.key }}" {% if p.key == default_tsa %}checked{% endif %}>
+            <span>
+              <span class="tsa-option-name">{{ p.name }}</span>
+              <span class="tsa-option-desc">{{ p.description }}</span>
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+        <button class="btn-ts" id="tsBtn">タイムスタンプを取得する</button>
+        <div id="tsResult" class="blockchain-result hidden"></div>
+      </div>
+
+      <!-- ブロックチェーン記録 -->
+      <div class="card blockchain-card">
+        <h2>🔒 ブロックチェーン記録</h2>
+        <div class="network-badge" id="networkBadge"></div>
+        <p class="card-desc">
+          記録すると、この写真の電子指紋と真正性スコアが Polygon ブロックチェーン上のスマートコントラクトに書き込まれます。世界中のコンピュータが同じデータを分散保管するため、一度記録すると誰も削除・改ざんできません。<br>
+          <span class="analogy">石碑に刻んだ記録と同じで、内容を後から書き換えることは不可能です。</span>
+        </p>
+        <button class="btn-register" id="registerBtn">ブロックチェーンに記録する</button>
+        <div id="blockchainResult" class="blockchain-result hidden"></div>
+      </div>
+
+      <!-- 詳細情報（折りたたみ） -->
+      <details class="card details-card">
+        <summary>詳細情報（技術者向け）</summary>
+        <div class="details-inner">
+          <h3>電子指紋（SHA-256 ハッシュ）</h3>
+          <p class="note">1ピクセルでも改変されると別の値になる、写真固有の64文字の文字列です。</p>
+          <div class="hash-value" id="hashValue"></div>
+          <h3>ファイル情報</h3>
+          <table class="info-table" id="fileInfo"></table>
+          <h3>ELA 解析数値</h3>
+          <table class="info-table" id="elaRaw"></table>
+          <h3>減点明細</h3>
+          <div id="deductions"></div>
+        </div>
+      </details>
+
+    </section>
+  </main>
+
+  <footer>
+    <p>Imprint v0.8.0 — Photo Authenticity Service</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

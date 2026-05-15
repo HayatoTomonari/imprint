@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="保険・不動産・法務向けの写真真正性認証プラットフォーム。AIとブロックチェーンで写真の無加工証明を実現。">
+  <title>Imprint — 写真真正性認証プラットフォーム</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner container">
+      <a href="#top" class="nav-logo">
+        <svg class="logo-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="14,2 26,8 26,20 14,26 2,20 2,8" fill="#6366f1" opacity=".2" stroke="#6366f1" stroke-width="1.5"/>
+          <polygon points="14,6 22,10 22,18 14,22 6,18 6,10" fill="#6366f1" opacity=".4"/>
+          <circle cx="14" cy="14" r="3" fill="#818cf8"/>
+        </svg>
+        <span>Imprint</span>
+      </a>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#features">機能</a></li>
+        <li><a href="#usecases">導入事例</a></li>
+        <li><a href="#how">仕組み</a></li>
+        <li><a href="#pricing">料金</a></li>
+        <li><a href="http://localhost:8000/docs" target="_blank" rel="noopener">API Docs</a></li>
+      </ul>
+      <div class="nav-actions">
+        <a href="http://localhost:8000" class="btn-ghost-sm">ダッシュボード</a>
+        <a href="#pricing" class="btn-primary-sm">無料で始める</a>
+      </div>
+      <button class="hamburger" id="hamburger" aria-label="メニューを開く">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ── Hero ── -->
+  <section class="hero" id="top">
+    <div class="hero-bg">
+      <div class="grid-overlay"></div>
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+    <div class="hero-inner container">
+      <div class="hero-text">
+        <div class="hero-badge">
+          <span class="badge-pulse"></span>
+          写真真正性認証 × ブロックチェーン × RFC 3161
+        </div>
+        <h1 class="hero-title">
+          写真の真実を、<br>
+          <span class="gradient-text">技術で証明する。</span>
+        </h1>
+        <p class="hero-sub">
+          保険・不動産・法務が直面する「加工写真リスク」を、<br class="br-desktop">
+          AIとブロックチェーンを組み合わせた多層解析で根絶します。
+        </p>
+        <div class="hero-actions">
+          <a href="#pricing" class="btn-primary btn-lg">無料で試す</a>
+          <a href="http://localhost:8000" class="btn-outline-light btn-lg" target="_blank" rel="noopener">
+            デモを開く <span class="arrow">→</span>
+          </a>
+        </div>
+        <div class="hero-proof">
+          <span>6層解析</span><span class="sep">·</span>
+          <span>RFC 3161 認定</span><span class="sep">·</span>
+          <span>Polygon ブロックチェーン</span><span class="sep">·</span>
+          <span>PDF証明書</span>
+        </div>
+      </div>
+
+      <!-- Floating result preview -->
+      <div class="hero-visual">
+        <div class="preview-card">
+          <div class="preview-header">
+            <div class="preview-dots">
+              <span style="background:#ef4444"></span>
+              <span style="background:#f59e0b"></span>
+              <span style="background:#22c55e"></span>
+            </div>
+            <span class="preview-title-text">Imprint — 検証結果</span>
+          </div>
+          <div class="preview-body">
+            <div class="preview-score-row">
+              <div class="preview-gauge-wrap">
+                <svg viewBox="0 0 80 80" class="preview-svg">
+                  <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="6"/>
+                  <circle cx="40" cy="40" r="32" fill="none" stroke="#6366f1" stroke-width="6"
+                    stroke-linecap="round"
+                    stroke-dasharray="201"
+                    stroke-dashoffset="34"
+                    transform="rotate(-90 40 40)"/>
+                </svg>
+                <div class="preview-score-center">
+                  <span class="preview-score-num">92</span>
+                  <span class="preview-score-sub">/100</span>
+                </div>
+              </div>
+              <div class="preview-verdict-block">
+                <div class="preview-badge-ok">✓ 真正性高</div>
+                <div class="preview-filename">DSC_4821.jpg</div>
+              </div>
+            </div>
+            <div class="preview-checks">
+              <div class="pcheck ok"><span>✓</span> EXIFデータ正常・GPS記録あり</div>
+              <div class="pcheck ok"><span>✓</span> ELA: 加工痕なし（clean）</div>
+              <div class="pcheck ok"><span>✓</span> AI生成の疑いなし</div>
+              <div class="pcheck ok"><span>✓</span> RFC 3161 タイムスタンプ認定済み</div>
+              <div class="pcheck ok"><span>✓</span> Polygon に記録済み</div>
+            </div>
+            <div class="preview-hash">
+              SHA-256: <span>a3f8c2d1e9b7…</span>
+            </div>
+          </div>
+        </div>
+        <!-- Floating badges -->
+        <div class="float-badge badge-tl">
+          <span>⛓</span> Blockchain Verified
+        </div>
+        <div class="float-badge badge-br">
+          <span>📄</span> PDF Certificate Ready
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Stats bar ── -->
+  <div class="stats-bar">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-num" data-target="6">0</div>
+          <div class="stat-label">解析レイヤー</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-num" data-target="3">0</div>
+          <div class="stat-label">認定 TSA 対応</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-num stat-text">SHA-256</div>
+          <div class="stat-label">改ざん検知</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-num stat-text">RFC 3161</div>
+          <div class="stat-label">国際標準タイムスタンプ</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-num stat-text">Polygon</div>
+          <div class="stat-label">ブロックチェーン記録</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Problem ── -->
+  <section class="section section-light" id="problem">
+    <div class="container">
+      <div class="section-label reveal">課題</div>
+      <h2 class="section-title reveal">
+        「この写真、本物ですか？」<br>に答えられていますか？
+      </h2>
+      <p class="section-sub reveal">
+        デジタル写真の加工が容易になった今、業界横断的に「写真の信頼性」が問われています。
+      </p>
+      <div class="three-grid mt-48">
+        <div class="problem-card reveal">
+          <div class="problem-icon">🚗</div>
+          <h3>損害保険</h3>
+          <p>事故・災害写真の加工による保険詐欺が増加。損害査定の信頼性が根本から揺らいでいます。</p>
+        </div>
+        <div class="problem-card reveal">
+          <div class="problem-icon">🏠</div>
+          <h3>不動産</h3>
+          <p>物件写真の過度な加工・AI 生成が横行。購入者の信頼を損ね、広告コンプライアンスリスクに。</p>
+        </div>
+        <div class="problem-card reveal">
+          <div class="problem-icon">⚖️</div>
+          <h3>法務・公証</h3>
+          <p>訴訟で使用する証拠写真の改ざんリスク。デジタル証拠の法的証明力が担保できません。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Solution ── -->
+  <section class="section section-dark" id="solution">
+    <div class="container">
+      <div class="two-col">
+        <div class="col-text reveal">
+          <div class="section-label label-light">解決策</div>
+          <h2 class="section-title title-light">
+            1つの API で、<br>写真の真正性を<br>完全証明。
+          </h2>
+          <p class="section-sub sub-light">
+            Imprint は写真を受け取り、6つの独立した解析レイヤーを通じて真正性スコアを算出。
+            RFC 3161 タイムスタンプとブロックチェーン記録で、第三者検証可能な証明を発行します。
+          </p>
+          <ul class="check-list">
+            <li>既存システムへの REST API 統合</li>
+            <li>数秒で検証完了・即時レスポンス</li>
+            <li>PDF証明書を即時発行</li>
+            <li>ブロックチェーンで永久保存・公開検証可能</li>
+          </ul>
+          <a href="http://localhost:8000/docs" class="btn-primary mt-32" target="_blank" rel="noopener">API ドキュメントを見る →</a>
+        </div>
+        <div class="col-visual reveal">
+          <div class="flow-diagram">
+            <div class="flow-step-top">
+              <div class="flow-icon-box">📷</div>
+              <div class="flow-label">写真をアップロード</div>
+              <div class="flow-sublabel">JPEG / PNG / HEIC</div>
+            </div>
+            <div class="flow-connector">
+              <span class="flow-line"></span>
+              <span class="flow-dot-anim"></span>
+            </div>
+            <div class="flow-center-box">
+              <div class="flow-center-icon">🔬</div>
+              <div class="flow-center-title">Imprint 多層解析</div>
+              <div class="flow-tags">
+                <span>EXIF</span><span>ELA</span><span>AI検出</span>
+                <span>SHA-256</span><span>TSA</span><span>BC</span>
+              </div>
+            </div>
+            <div class="flow-connector">
+              <span class="flow-line"></span>
+              <span class="flow-dot-anim" style="animation-delay:.4s"></span>
+            </div>
+            <div class="flow-outputs">
+              <div class="flow-out-item">📊 真正性スコア</div>
+              <div class="flow-out-item">⏱ 時刻証明</div>
+              <div class="flow-out-item">⛓ BC 永久記録</div>
+              <div class="flow-out-item">📄 PDF証明書</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Features ── -->
+  <section class="section section-light" id="features">
+    <div class="container">
+      <div class="section-label reveal">機能</div>
+      <h2 class="section-title reveal">6つの解析レイヤー</h2>
+      <p class="section-sub reveal">
+        写真の真正性を多角的に検証するため、6つの独立した解析を組み合わせています。
+      </p>
+      <div class="features-grid mt-48">
+        <div class="feature-card reveal">
+          <div class="feat-icon">📋</div>
+          <h3>EXIFメタデータ解析</h3>
+          <p>カメラ機種・GPS座標・撮影日時・ソフトウェア情報を完全記録。改ざん・削除の痕跡を検出します。</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feat-icon">🔍</div>
+          <h3>ELA 誤差水準解析</h3>
+          <p>JPEG 再圧縮時の誤差パターンを解析し、画像編集ソフトによる加工箇所を高精度で可視化します。</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feat-icon">🤖</div>
+          <h3>AI生成画像検出</h3>
+          <p>HuggingFace の最先端モデルで AI 生成写真を識別。未使用時はローカルの FFT 周波数解析にフォールバック。</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feat-icon">⏱</div>
+          <h3>RFC 3161 タイムスタンプ</h3>
+          <p>国際標準（RFC 3161）に準拠した認定タイムスタンプ。FreeTSA・DigiCert・Sectigo の3局から選択可能。</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feat-icon">⛓</div>
+          <h3>ブロックチェーン記録</h3>
+          <p>写真ハッシュと真正性スコアを Polygon に永久記録。改ざん不可能な第三者証明を実現します。</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feat-icon">📄</div>
+          <h3>PDF証明書発行</h3>
+          <p>全解析結果・タイムスタンプ・ブロックチェーンリンクを含む A4 証明書を即時生成。法的書面として提出可能。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── How it works ── -->
+  <section class="section section-dark" id="how">
+    <div class="container">
+      <div class="section-label label-light reveal">仕組み</div>
+      <h2 class="section-title title-light reveal">3ステップで完了</h2>
+      <div class="steps-grid mt-48">
+        <div class="step-card reveal">
+          <div class="step-num">01</div>
+          <h3>写真を送信</h3>
+          <p>REST API の <code>POST /verify</code> エンドポイントに、写真ファイルと API キーを送信するだけ。</p>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">bash</span></div>
+            <pre><code>curl -X POST https://api.imprint.jp/verify \
+  -H "X-API-Key: imp_xxxxxxxx" \
+  -F "file=@photo.jpg"</code></pre>
+          </div>
+        </div>
+        <div class="step-card reveal">
+          <div class="step-num">02</div>
+          <h3>多層解析を実行</h3>
+          <p>EXIF・ELA・AI 検出・SHA-256 を並列処理。タイムスタンプとブロックチェーン記録は任意で追加できます。</p>
+          <div class="layer-pills">
+            <span>EXIF</span><span>ELA</span><span>AI 検出</span><span>SHA-256</span><span>TSA</span><span>Blockchain</span>
+          </div>
+        </div>
+        <div class="step-card reveal">
+          <div class="step-num">03</div>
+          <h3>証明書を受け取る</h3>
+          <p>真正性スコア・詳細レポート・PDF証明書・ブロックチェーン Tx リンクをレスポンスで即時受け取り。</p>
+          <div class="score-chip">
+            <span class="score-chip-num">87</span>
+            <span class="score-chip-text">/ 100 — 真正性高</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Use cases ── -->
+  <section class="section section-light" id="usecases">
+    <div class="container">
+      <div class="section-label reveal">導入事例</div>
+      <h2 class="section-title reveal">業界別ユースケース</h2>
+      <div class="three-grid mt-48">
+        <div class="usecase-card reveal">
+          <div class="uc-tag tag-blue">損害保険</div>
+          <h3>保険詐欺を写真解析で防ぐ</h3>
+          <p>
+            事故・水災・火災時に提出された写真を即座に解析。加工の有無をスコアで可視化し、
+            損害査定の精度と信頼性を向上させます。
+          </p>
+          <ul class="uc-list">
+            <li>査定フローへの API 統合</li>
+            <li>加工検出でアラート発報</li>
+            <li>証明書を案件ファイルに自動添付</li>
+          </ul>
+        </div>
+        <div class="usecase-card reveal">
+          <div class="uc-tag tag-green">不動産</div>
+          <h3>物件写真の広告コンプライアンス</h3>
+          <p>
+            掲載写真の ELA スコアと EXIF データを自動チェック。過度な修正・AI 生成物件写真を検出し、
+            消費者への正確な情報提供を担保します。
+          </p>
+          <ul class="uc-list">
+            <li>物件登録時に自動検証</li>
+            <li>撮影日時・場所をブロックチェーン記録</li>
+            <li>コンプライアンス証明書を自動発行</li>
+          </ul>
+        </div>
+        <div class="usecase-card reveal">
+          <div class="uc-tag tag-purple">法務・公証</div>
+          <h3>証拠写真の法的証明力を強化</h3>
+          <p>
+            訴訟・仲裁で使用する写真証拠に RFC 3161 タイムスタンプとブロックチェーン記録を付与。
+            撮影時刻の不争証拠を提供します。
+          </p>
+          <ul class="uc-list">
+            <li>証拠写真に時刻証明を付与</li>
+            <li>Polygonscan でリアルタイム確認</li>
+            <li>A4 PDF 証明書を裁判所に提出</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Technology ── -->
+  <section class="section section-mid" id="technology">
+    <div class="container">
+      <div class="section-label reveal">テクノロジー</div>
+      <h2 class="section-title reveal">信頼の基盤となる技術スタック</h2>
+      <div class="tech-grid mt-48">
+        <div class="tech-item reveal">
+          <div class="tech-ico">🔐</div>
+          <div class="tech-info">
+            <div class="tech-name">SHA-256</div>
+            <div class="tech-desc">業界標準の暗号学的ハッシュで写真の同一性を証明</div>
+          </div>
+        </div>
+        <div class="tech-item reveal">
+          <div class="tech-ico">📡</div>
+          <div class="tech-info">
+            <div class="tech-name">RFC 3161 TSP</div>
+            <div class="tech-desc">国際標準タイムスタンプ。FreeTSA / DigiCert / Sectigo 対応</div>
+          </div>
+        </div>
+        <div class="tech-item reveal">
+          <div class="tech-ico">⛓</div>
+          <div class="tech-info">
+            <div class="tech-name">Polygon Blockchain</div>
+            <div class="tech-desc">低コスト・高速なパブリックブロックチェーンに永久記録</div>
+          </div>
+        </div>
+        <div class="tech-item reveal">
+          <div class="tech-ico">🤖</div>
+          <div class="tech-info">
+            <div class="tech-name">HuggingFace AI</div>
+            <div class="tech-desc">最先端の機械学習モデルで AI 生成画像を検出</div>
+          </div>
+        </div>
+        <div class="tech-item reveal">
+          <div class="tech-ico">🔍</div>
+          <div class="tech-info">
+            <div class="tech-name">ELA 解析</div>
+            <div class="tech-desc">Error Level Analysis で加工箇所を高精度に可視化</div>
+          </div>
+        </div>
+        <div class="tech-item reveal">
+          <div class="tech-ico">📜</div>
+          <div class="tech-info">
+            <div class="tech-name">X.509 CA Chain</div>
+            <div class="tech-desc">AIA 拡張から中間証明書を自動取得し、certifi で信頼検証</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Pricing ── -->
+  <section class="section section-dark" id="pricing">
+    <div class="container">
+      <div class="section-label label-light reveal">料金</div>
+      <h2 class="section-title title-light reveal">シンプルな料金体系</h2>
+      <p class="section-sub sub-light reveal">すべてのプランで主要機能が利用可能。規模に合わせて選べます。</p>
+      <div class="pricing-grid mt-48">
+        <div class="pricing-card reveal">
+          <div class="plan-name">Starter</div>
+          <div class="plan-price">無料</div>
+          <div class="plan-desc">個人・検証用途に</div>
+          <ul class="plan-features">
+            <li class="ok">月 50 回まで</li>
+            <li class="ok">EXIF + ELA + AI 検出</li>
+            <li class="ok">SHA-256 ハッシュ</li>
+            <li class="ok">PDF 証明書</li>
+            <li class="no">ブロックチェーン記録</li>
+            <li class="no">RFC 3161 タイムスタンプ</li>
+          </ul>
+          <a href="#" class="btn-outline-light plan-btn">今すぐ開始</a>
+        </div>
+        <div class="pricing-card pricing-featured reveal">
+          <div class="plan-badge-top">人気</div>
+          <div class="plan-name">Business</div>
+          <div class="plan-price">¥9,800<span class="plan-per">/月</span></div>
+          <div class="plan-desc">業務利用・中規模向け</div>
+          <ul class="plan-features">
+            <li class="ok">月 1,000 回まで</li>
+            <li class="ok">全解析機能</li>
+            <li class="ok">ブロックチェーン記録</li>
+            <li class="ok">RFC 3161 タイムスタンプ</li>
+            <li class="ok">複数 TSA 選択</li>
+            <li class="ok">API キー複数発行</li>
+          </ul>
+          <a href="#" class="btn-primary plan-btn">14日間無料トライアル</a>
+        </div>
+        <div class="pricing-card reveal">
+          <div class="plan-name">Enterprise</div>
+          <div class="plan-price">要相談</div>
+          <div class="plan-desc">大規模・SLA 保証が必要な場合</div>
+          <ul class="plan-features">
+            <li class="ok">無制限</li>
+            <li class="ok">全機能 + 優先処理</li>
+            <li class="ok">専任サポート</li>
+            <li class="ok">SLA 99.9% 保証</li>
+            <li class="ok">オンプレミス対応相談</li>
+            <li class="ok">カスタム統合支援</li>
+          </ul>
+          <a href="mailto:info@h-tomonari.jp" class="btn-outline-light plan-btn">お問い合わせ</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA ── -->
+  <section class="cta-section">
+    <div class="cta-bg"></div>
+    <div class="container">
+      <div class="cta-inner reveal">
+        <h2>今すぐ、写真の真正性を証明しよう。</h2>
+        <p>API キーは 5 分で取得できます。まずは無料プランでお試しください。</p>
+        <div class="cta-actions">
+          <a href="http://localhost:8000" class="btn-primary btn-lg" target="_blank" rel="noopener">ダッシュボードを開く</a>
+          <a href="http://localhost:8000/docs" class="btn-outline-light btn-lg" target="_blank" rel="noopener">API ドキュメント →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ── -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <a href="#top" class="nav-logo footer-logo">
+            <svg class="logo-icon" viewBox="0 0 28 28" fill="none">
+              <polygon points="14,2 26,8 26,20 14,26 2,20 2,8" fill="#6366f1" opacity=".25" stroke="#6366f1" stroke-width="1.5"/>
+              <polygon points="14,6 22,10 22,18 14,22 6,18 6,10" fill="#6366f1" opacity=".5"/>
+              <circle cx="14" cy="14" r="3" fill="#818cf8"/>
+            </svg>
+            <span>Imprint</span>
+          </a>
+          <p class="footer-tagline">写真真正性認証プラットフォーム<br>保険・不動産・法務向け</p>
+        </div>
+        <div class="footer-links">
+          <div class="footer-col">
+            <div class="footer-col-title">プロダクト</div>
+            <a href="#features">機能</a>
+            <a href="#how">仕組み</a>
+            <a href="#pricing">料金</a>
+            <a href="http://localhost:8000/docs" target="_blank" rel="noopener">API Docs</a>
+          </div>
+          <div class="footer-col">
+            <div class="footer-col-title">ユースケース</div>
+            <a href="#usecases">損害保険</a>
+            <a href="#usecases">不動産</a>
+            <a href="#usecases">法務・公証</a>
+          </div>
+          <div class="footer-col">
+            <div class="footer-col-title">会社</div>
+            <a href="mailto:info@h-tomonari.jp">お問い合わせ</a>
+            <a href="#">プライバシーポリシー</a>
+            <a href="#">利用規約</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Imprint. All rights reserved.</span>
+        <span class="footer-tech">Powered by Polygon · RFC 3161 · HuggingFace</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
