@@ -498,3 +498,308 @@ function fmtBytes(b) {
 function fmtDate(iso) {
   return new Date(iso).toLocaleString('ja-JP');
 }
+
+// ══════════════════════════════════════════════════════════════
+//  SIDEBAR NAVIGATION & TAB SWITCHING
+// ══════════════════════════════════════════════════════════════
+
+const sidebar      = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebarToggle');
+
+sidebarToggle.addEventListener('click', () => {
+  sidebar.classList.toggle('open');
+});
+
+// close sidebar on overlay click (mobile)
+document.addEventListener('click', e => {
+  if (window.innerWidth <= 700 && !sidebar.contains(e.target) && e.target !== sidebarToggle && !sidebarToggle.contains(e.target)) {
+    sidebar.classList.remove('open');
+  }
+});
+
+let _historyLoaded = false;
+let _statsLoaded   = false;
+let _profileLoaded = false;
+let _monthlyChart  = null;
+let _verdictChart  = null;
+let _historyPage   = 1;
+
+document.querySelectorAll('.sidebar-link[data-tab]').forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    const tabId = link.dataset.tab;
+
+    document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+    link.classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+
+    if (window.innerWidth <= 700) sidebar.classList.remove('open');
+
+    if (tabId === 'tab-history' && !_historyLoaded) { loadHistory(1); _historyLoaded = true; }
+    if (tabId === 'tab-stats'   && !_statsLoaded)   { loadStats();            _statsLoaded   = true; }
+    if (tabId === 'tab-profile' && !_profileLoaded) { loadProfile();          _profileLoaded = true; }
+  });
+});
+
+// ══════════════════════════════════════════════════════════════
+//  HISTORY TAB
+// ══════════════════════════════════════════════════════════════
+
+const VERDICT_JP = { high: '真正性：高', medium: '真正性：中', low: '真正性：低' };
+const ELA_JP     = { clean: 'クリーン', suspicious: '要注意', likely_edited: '加工あり', unknown: '不明', error: 'エラー' };
+const AI_JP      = { likely_real: '本物', suspicious: '疑い', ai_generated: 'AI生成', unknown: '不明' };
+
+async function loadHistory(page) {
+  _historyPage = page;
+  const loadEl   = document.getElementById('historyLoading');
+  const emptyEl  = document.getElementById('historyEmpty');
+  const contentEl = document.getElementById('historyContent');
+
+  show(loadEl); hide(emptyEl); hide(contentEl);
+
+  try {
+    const res  = await fetch(`/dashboard/history?page=${page}`, { credentials: 'same-origin' });
+    const data = await res.json();
+
+    hide(loadEl);
+    if (!data.items || data.items.length === 0) {
+      show(emptyEl);
+      return;
+    }
+    show(contentEl);
+
+    document.getElementById('historyTotal').textContent = `${data.total} 件`;
+
+    const tbody = document.getElementById('historyBody');
+    tbody.innerHTML = data.items.map(item => {
+      const scoreColor = item.verdict === 'high' ? '#16a34a' : item.verdict === 'medium' ? '#d97706' : '#dc2626';
+      const verdictBadge = item.verdict
+        ? `<span class="badge-${item.verdict}">${VERDICT_JP[item.verdict] || item.verdict}</span>`
+        : '—';
+      const elaBadge = item.ela_verdict
+        ? `<span class="badge-${item.ela_verdict === 'clean' ? 'yes' : item.ela_verdict === 'likely_edited' ? 'low' : 'medium'}">${ELA_JP[item.ela_verdict] || item.ela_verdict}</span>`
+        : '—';
+      const aiBadge = item.ai_verdict
+        ? `<span class="badge-${item.ai_verdict === 'likely_real' ? 'yes' : item.ai_verdict === 'ai_generated' ? 'low' : 'medium'}">${AI_JP[item.ai_verdict] || item.ai_verdict}</span>`
+        : '—';
+      const tsBadge = item.has_timestamp
+        ? '<span class="badge-yes">✓ 取得済</span>'
+        : '<span class="badge-no">未取得</span>';
+      const bcBadge = item.has_blockchain
+        ? (item.explorer_url
+            ? `<a href="${item.explorer_url}" target="_blank" class="badge-yes" style="text-decoration:none">✓ 記録済</a>`
+            : '<span class="badge-yes">✓ 記録済</span>')
+        : '<span class="badge-no">未記録</span>';
+      const dt = item.created_at ? new Date(item.created_at).toLocaleDateString('ja-JP') : '—';
+
+      return `<tr>
+        <td><div class="hist-filename" title="${escHtml(item.filename)}">${escHtml(item.filename)}</div></td>
+        <td class="score-cell" style="color:${scoreColor}">${item.score != null ? item.score : '—'}</td>
+        <td>${verdictBadge}</td>
+        <td>${elaBadge}</td>
+        <td>${aiBadge}</td>
+        <td>${tsBadge}</td>
+        <td>${bcBadge}</td>
+        <td>${dt}</td>
+      </tr>`;
+    }).join('');
+
+    // pagination
+    const totalPages = Math.ceil(data.total / data.per_page);
+    const paginationEl = document.getElementById('historyPagination');
+    if (totalPages <= 1) {
+      paginationEl.innerHTML = '';
+    } else {
+      let html = '';
+      for (let p = 1; p <= totalPages; p++) {
+        html += `<button class="page-btn${p === page ? ' active' : ''}" onclick="loadHistory(${p})">${p}</button>`;
+      }
+      paginationEl.innerHTML = html;
+    }
+  } catch {
+    hide(loadEl);
+    show(emptyEl);
+  }
+}
+
+document.getElementById('historyRefresh')?.addEventListener('click', () => {
+  _historyLoaded = false;
+  loadHistory(_historyPage);
+  _historyLoaded = true;
+});
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  STATS TAB
+// ══════════════════════════════════════════════════════════════
+
+async function loadStats() {
+  const loadEl   = document.getElementById('statsLoading');
+  const contentEl = document.getElementById('statsContent');
+  show(loadEl); hide(contentEl);
+
+  try {
+    const res  = await fetch('/dashboard/stats', { credentials: 'same-origin' });
+    const data = await res.json();
+    hide(loadEl);
+    show(contentEl);
+
+    document.getElementById('statTotal').textContent    = data.total_analyses ?? 0;
+    document.getElementById('statAvgScore').textContent = data.avg_score != null ? `${data.avg_score}点` : '—';
+    document.getElementById('statTsCount').textContent  = data.ts_count ?? 0;
+    document.getElementById('statBcCount').textContent  = data.bc_count ?? 0;
+
+    // Usage bar
+    const cur = data.current_usage ?? 0;
+    const lim = data.usage_limit;
+    document.getElementById('usageBarCurrent').textContent = `${cur} 回`;
+    document.getElementById('usageBarLimit').textContent   = lim != null ? `/ ${lim} 回` : '（無制限）';
+    const pct = lim ? Math.min(cur / lim * 100, 100) : 0;
+    document.getElementById('usageBarFill').style.width = `${pct}%`;
+
+    // Monthly chart
+    const monthly = data.monthly_usage || [];
+    if (_monthlyChart) { _monthlyChart.destroy(); _monthlyChart = null; }
+    if (monthly.length > 0) {
+      const ctx = document.getElementById('monthlyChart').getContext('2d');
+      _monthlyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: monthly.map(m => m.month),
+          datasets: [{
+            label: '解析回数',
+            data: monthly.map(m => m.count),
+            backgroundColor: '#818cf8',
+            borderRadius: 5,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f3f4f6' } },
+            x: { grid: { display: false } },
+          },
+        },
+      });
+    }
+
+    // Verdict doughnut
+    const vdist = data.verdict_dist || [];
+    if (_verdictChart) { _verdictChart.destroy(); _verdictChart = null; }
+    if (vdist.length > 0) {
+      const VCOL = { high: '#16a34a', medium: '#d97706', low: '#dc2626' };
+      const ctx2 = document.getElementById('verdictChart').getContext('2d');
+      _verdictChart = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels: vdist.map(v => VERDICT_JP[v.verdict] || v.verdict || '不明'),
+          datasets: [{
+            data: vdist.map(v => v.count),
+            backgroundColor: vdist.map(v => VCOL[v.verdict] || '#9ca3af'),
+            borderWidth: 2,
+            borderColor: '#fff',
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 12 } },
+          },
+          cutout: '65%',
+        },
+      });
+    }
+  } catch {
+    hide(loadEl);
+    show(contentEl);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PROFILE TAB
+// ══════════════════════════════════════════════════════════════
+
+async function loadProfile() {
+  const loadEl    = document.getElementById('profileLoading');
+  const contentEl = document.getElementById('profileContent');
+  show(loadEl); hide(contentEl);
+
+  try {
+    const res  = await fetch('/auth/profile', { credentials: 'same-origin' });
+    const data = await res.json();
+    hide(loadEl);
+    show(contentEl);
+
+    document.getElementById('profileEmail').textContent   = data.email;
+    document.getElementById('profilePlan').innerHTML      =
+      `<span class="plan-badge plan-${data.plan}">${data.plan_label}</span>`;
+    document.getElementById('profileCreated').textContent =
+      data.created_at ? new Date(data.created_at).toLocaleDateString('ja-JP') : '—';
+    document.getElementById('profileTotal').textContent   = `${data.total_analyses} 回`;
+    document.getElementById('profileKeyId').textContent   = data.api_key_id ? `…${data.api_key_id}` : '—';
+    document.getElementById('profileKeyCreated').textContent =
+      data.api_key_created ? new Date(data.api_key_created).toLocaleDateString('ja-JP') : '—';
+
+    // upgrade button
+    const upWrap = document.getElementById('profileUpgradeWrap');
+    if (STRIPE_ON && data.plan === 'starter') {
+      upWrap.classList.remove('hidden');
+      document.getElementById('profileUpgradeBtn').addEventListener('click', upgradeToB);
+    }
+  } catch {
+    hide(loadEl);
+    show(contentEl);
+  }
+}
+
+// Password change
+document.getElementById('pwForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg      = document.getElementById('pwMsg');
+  const current  = document.getElementById('pwCurrent').value;
+  const newPw    = document.getElementById('pwNew').value;
+  const confirm  = document.getElementById('pwConfirm').value;
+
+  msg.classList.remove('ok', 'err');
+  hide(msg);
+
+  if (newPw !== confirm) {
+    msg.textContent = '新しいパスワードが一致しません';
+    msg.classList.add('err');
+    show(msg);
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('current_password', current);
+  fd.append('new_password', newPw);
+
+  try {
+    const res  = await fetch('/auth/profile/password', {
+      method: 'POST',
+      credentials: 'same-origin',
+      body: fd,
+    });
+    const data = await res.json();
+    if (res.ok) {
+      msg.textContent = 'パスワードを変更しました';
+      msg.classList.add('ok');
+      document.getElementById('pwForm').reset();
+    } else {
+      msg.textContent = data.detail || 'エラーが発生しました';
+      msg.classList.add('err');
+    }
+  } catch {
+    msg.textContent = 'サーバーへの接続に失敗しました';
+    msg.classList.add('err');
+  }
+  show(msg);
+});

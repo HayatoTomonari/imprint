@@ -139,6 +139,24 @@ def _init_db() -> None:
             shown    INTEGER NOT NULL DEFAULT 0
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS analyses (
+            id             TEXT PRIMARY KEY,
+            user_id        TEXT NOT NULL,
+            filename       TEXT NOT NULL,
+            file_size      INTEGER,
+            file_hash      TEXT,
+            score          REAL,
+            verdict        TEXT,
+            ela_verdict    TEXT,
+            ai_verdict     TEXT,
+            has_timestamp  INTEGER NOT NULL DEFAULT 0,
+            has_blockchain INTEGER NOT NULL DEFAULT 0,
+            tx_hash        TEXT,
+            created_at     TEXT NOT NULL,
+            UNIQUE(user_id, file_hash)
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -1017,6 +1035,133 @@ async def auth_me(user=Depends(_require_user)):
     return {"id": user["id"], "email": user["email"], "plan": user["plan"]}
 
 
+@app.get("/auth/profile", tags=["Auth"], include_in_schema=False)
+async def auth_profile(user=Depends(_require_user)):
+    conn = _db()
+    try:
+        usage_rows = conn.execute(
+            "SELECT year_month, count FROM monthly_usage WHERE user_id = ? ORDER BY year_month DESC LIMIT 12",
+            (user["id"],),
+        ).fetchall()
+        total = sum(r["count"] for r in usage_rows)
+        key_row = conn.execute(
+            "SELECT id, created_at FROM api_keys WHERE user_id = ? AND is_active = 1 LIMIT 1",
+            (user["id"],),
+        ).fetchone()
+    finally:
+        conn.close()
+    limit = PLAN_LIMITS.get(user["plan"])
+    return {
+        "email": user["email"],
+        "plan": user["plan"],
+        "plan_label": PLAN_LABELS.get(user["plan"], user["plan"]),
+        "created_at": user["created_at"],
+        "usage_limit": limit,
+        "total_analyses": total,
+        "api_key_id": key_row["id"] if key_row else None,
+        "api_key_created": key_row["created_at"] if key_row else None,
+    }
+
+
+@app.post("/auth/profile/password", tags=["Auth"], include_in_schema=False)
+async def change_password(
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    user=Depends(_require_user),
+):
+    if len(new_password) < 8:
+        raise HTTPException(status_code=400, detail="パスワードは8文字以上にしてください")
+    if not _pwd_ctx.verify(current_password, user["password_hash"]):
+        raise HTTPException(status_code=400, detail="現在のパスワードが正しくありません")
+    conn = _db()
+    try:
+        conn.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (_pwd_ctx.hash(new_password), user["id"]),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True}
+
+
+@app.get("/dashboard/history", tags=["Dashboard"], include_in_schema=False)
+async def dashboard_history(
+    page: int = 1,
+    user=Depends(_require_user),
+):
+    per_page = 20
+    offset = (page - 1) * per_page
+    conn = _db()
+    try:
+        total = conn.execute(
+            "SELECT COUNT(*) as cnt FROM analyses WHERE user_id = ?", (user["id"],)
+        ).fetchone()["cnt"]
+        rows = conn.execute(
+            """SELECT filename, file_size, file_hash, score, verdict, ela_verdict,
+                      ai_verdict, has_timestamp, has_blockchain, tx_hash, created_at
+               FROM analyses WHERE user_id = ?
+               ORDER BY created_at DESC LIMIT ? OFFSET ?""",
+            (user["id"], per_page, offset),
+        ).fetchall()
+    finally:
+        conn.close()
+    explorer_base = _explorer_base() if CONTRACT_ADDRESS else "https://amoy.polygonscan.com"
+    return {
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "items": [
+            {
+                **dict(r),
+                "explorer_url": f"{explorer_base}/tx/{r['tx_hash']}" if r["tx_hash"] else None,
+            }
+            for r in rows
+        ],
+    }
+
+
+@app.get("/dashboard/stats", tags=["Dashboard"], include_in_schema=False)
+async def dashboard_stats(user=Depends(_require_user)):
+    conn = _db()
+    try:
+        usage_rows = conn.execute(
+            "SELECT year_month, count FROM monthly_usage WHERE user_id = ? ORDER BY year_month ASC",
+            (user["id"],),
+        ).fetchall()
+        total_analyses = conn.execute(
+            "SELECT COUNT(*) as cnt FROM analyses WHERE user_id = ?", (user["id"],)
+        ).fetchone()["cnt"]
+        ts_count = conn.execute(
+            "SELECT COUNT(*) as cnt FROM analyses WHERE user_id = ? AND has_timestamp = 1", (user["id"],)
+        ).fetchone()["cnt"]
+        bc_count = conn.execute(
+            "SELECT COUNT(*) as cnt FROM analyses WHERE user_id = ? AND has_blockchain = 1", (user["id"],)
+        ).fetchone()["cnt"]
+        avg_score = conn.execute(
+            "SELECT AVG(score) as avg FROM analyses WHERE user_id = ? AND score IS NOT NULL", (user["id"],)
+        ).fetchone()["avg"]
+        verdict_dist = conn.execute(
+            "SELECT verdict, COUNT(*) as cnt FROM analyses WHERE user_id = ? GROUP BY verdict",
+            (user["id"],),
+        ).fetchall()
+    finally:
+        conn.close()
+    ym = datetime.now(timezone.utc).strftime("%Y-%m")
+    current_usage = next((r["count"] for r in usage_rows if r["year_month"] == ym), 0)
+    limit = PLAN_LIMITS.get(user["plan"])
+    return {
+        "total_analyses": total_analyses,
+        "ts_count": ts_count,
+        "bc_count": bc_count,
+        "avg_score": round(avg_score, 1) if avg_score else None,
+        "current_usage": current_usage,
+        "usage_limit": limit,
+        "monthly_usage": [{"month": r["year_month"], "count": r["count"]} for r in usage_rows],
+        "verdict_dist": [{"verdict": r["verdict"], "count": r["cnt"]} for r in verdict_dist],
+    }
+
+
 @app.get("/auth/apikey", tags=["Auth"], include_in_schema=False)
 async def auth_apikey(user=Depends(_require_user)):
     """ダッシュボード用: ユーザーの API キーを返す（初回のみ raw キーを表示）"""
@@ -1304,6 +1449,7 @@ def _get_contract(w3):
 async def blockchain_register(
     file: UploadFile = File(...),
     _key_id: str = Depends(require_api_key_limited),
+    x_api_key: str = Depends(_api_key_header),
 ):
     """
     画像のSHA-256ハッシュと真正性スコアをPolygonチェーンに永久記録します。
@@ -1387,6 +1533,23 @@ async def blockchain_register(
             detail=f"トランザクションがチェーン上で失敗しました。TX: {tx_hex} / "
                    f"Polygonscan: {_explorer_url(tx_hex)}",
         )
+
+    # analyses のブロックチェーンフラグを更新
+    if x_api_key:
+        _bc_conn = _db()
+        try:
+            _bc_row = _bc_conn.execute(
+                "SELECT user_id FROM api_keys WHERE key_hash = ? AND is_active = 1",
+                (_hash_key(x_api_key),),
+            ).fetchone()
+            if _bc_row and _bc_row["user_id"]:
+                _bc_conn.execute(
+                    "UPDATE analyses SET has_blockchain = 1, tx_hash = ? WHERE user_id = ? AND file_hash = ?",
+                    (tx_hex, _bc_row["user_id"], sha256_hex),
+                )
+                _bc_conn.commit()
+        finally:
+            _bc_conn.close()
 
     return {
         "status": "registered",
@@ -1704,6 +1867,7 @@ async def timestamp_request(
     file: UploadFile = File(...),
     tsa: str = Form(default=None),
     _key_id: str = Depends(require_api_key_limited),
+    x_api_key: str = Depends(_api_key_header),
 ):
     """
     画像の SHA-256 ハッシュに対して RFC 3161 準拠のタイムスタンプを TSA に要求し、
@@ -1769,6 +1933,17 @@ async def timestamp_request(
             "VALUES (?, ?, ?, ?, ?, ?, ?)",
             (ts_id, image_hash, tsa_url, token_b64, serial_no, tsa_time_iso, requested_at),
         )
+        # analyses のタイムスタンプフラグを更新
+        if x_api_key:
+            uid_row = conn.execute(
+                "SELECT user_id FROM api_keys WHERE key_hash = ? AND is_active = 1",
+                (_hash_key(x_api_key),),
+            ).fetchone()
+            if uid_row and uid_row["user_id"]:
+                conn.execute(
+                    "UPDATE analyses SET has_timestamp = 1 WHERE user_id = ? AND file_hash = ?",
+                    (uid_row["user_id"], image_hash),
+                )
         conn.commit()
     finally:
         conn.close()
@@ -2244,6 +2419,7 @@ def build_certificate_pdf(verify_result: dict) -> bytes:
 async def verify_image(
     file: UploadFile = File(...),
     _key_id: str = Depends(require_api_key_limited),
+    x_api_key: str = Depends(_api_key_header),
 ):
     """
     画像をアップロードして真正性を検証します。
@@ -2282,6 +2458,39 @@ async def verify_image(
     ts_response = (
         {**ts_info, "verify_url": f"/timestamp/verify/{sha256_hash}"} if ts_info else None
     )
+
+    # 解析履歴を保存（ユーザー紐付き API キーの場合のみ）
+    if x_api_key:
+        _conn = _db()
+        try:
+            _uid_row = _conn.execute(
+                "SELECT user_id FROM api_keys WHERE key_hash = ? AND is_active = 1",
+                (_hash_key(x_api_key),),
+            ).fetchone()
+            if _uid_row and _uid_row["user_id"]:
+                _uid = _uid_row["user_id"]
+                _conn.execute(
+                    """INSERT INTO analyses
+                       (id, user_id, filename, file_size, file_hash, score, verdict,
+                        ela_verdict, ai_verdict, has_timestamp, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                       ON CONFLICT(user_id, file_hash) DO UPDATE SET
+                           filename=excluded.filename, file_size=excluded.file_size,
+                           score=excluded.score, verdict=excluded.verdict,
+                           ela_verdict=excluded.ela_verdict, ai_verdict=excluded.ai_verdict,
+                           has_timestamp=excluded.has_timestamp,
+                           created_at=excluded.created_at""",
+                    (
+                        secrets.token_hex(8), _uid, file.filename, file_size, sha256_hash,
+                        authenticity["score"], authenticity["verdict"],
+                        ela_data.get("ela_verdict"), ai_data.get("verdict"),
+                        1 if ts_info else 0,
+                        datetime.now(timezone.utc).isoformat(),
+                    ),
+                )
+                _conn.commit()
+        finally:
+            _conn.close()
 
     return {
         "verified_at": datetime.now(timezone.utc).isoformat(),

@@ -3,16 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Imprint — 写真真正性検証</title>
+  <title>Imprint ダッシュボード</title>
   <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body>
-  <div id="config" data-api-key="{{ api_key }}" data-network="{{ network_name }}" data-chain-id="{{ chain_id }}" data-stripe="{{ 'true' if stripe_enabled else 'false' }}" data-plan="{{ user_plan }}" hidden></div>
+  <div id="config"
+       data-api-key="{{ api_key }}"
+       data-network="{{ network_name }}"
+       data-chain-id="{{ chain_id }}"
+       data-stripe="{{ 'true' if stripe_enabled else 'false' }}"
+       data-plan="{{ user_plan }}"
+       hidden></div>
 
+  <!-- ── Header ── -->
   <header>
     <div class="header-inner">
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="メニュー">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
       <div class="logo">Imprint</div>
-      <div class="tagline">Photo Authenticity Verification</div>
+      <div class="tagline">Photo Authenticity</div>
       <div class="header-user">
         <span class="plan-badge plan-{{ user_plan }}">{{ plan_label }}</span>
         <span class="usage-count">{{ usage_count }} / {{ usage_limit }} 回</span>
@@ -22,146 +35,369 @@
     </div>
   </header>
 
-  <main>
-    <section class="apikey-section" id="apikeySection">
-      <div class="apikey-header">
-        <span class="apikey-label">APIキー</span>
-        <div id="upgradeBtn" class="btn-upgrade hidden">Business にアップグレード（¥9,800/月）</div>
-      </div>
-      <div id="apikeyValue" class="apikey-value">読み込み中...</div>
-      <div id="apikeyFirstTime" class="apikey-notice hidden">
-        このキーは一度だけ表示されます。安全な場所に保存してください。
-      </div>
-    </section>
+  <!-- ── Layout ── -->
+  <div class="dashboard-layout">
 
-    <section class="upload-section">
-      <div class="upload-zone" id="uploadZone">
-        <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/tiff" hidden>
-        <div class="upload-content">
-          <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <p class="upload-text">写真をドラッグ＆ドロップ</p>
-          <p class="upload-sub">または<span class="link">クリックして選択</span> · JPEG / PNG / WebP / TIFF · 最大20MB</p>
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+      <ul class="sidebar-nav">
+        <li>
+          <a href="#" class="sidebar-link active" data-tab="tab-analyze">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <span>解析</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="sidebar-link" data-tab="tab-history">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg>
+            <span>解析履歴</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="sidebar-link" data-tab="tab-stats">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 16 4-4 4 4 4-4"/></svg>
+            <span>利用状況</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="sidebar-link" data-tab="tab-profile">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+            <span>アカウント</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Main content -->
+    <main class="dashboard-main">
+
+      <!-- ── Tab: 解析 ── -->
+      <div class="tab-panel active" id="tab-analyze">
+
+        <!-- API Key -->
+        <section class="apikey-section" id="apikeySection">
+          <div class="apikey-header">
+            <span class="apikey-label">APIキー</span>
+            <div id="upgradeBtn" class="btn-upgrade hidden">Business にアップグレード（¥9,800/月）</div>
+          </div>
+          <div id="apikeyValue" class="apikey-value">読み込み中...</div>
+          <div id="apikeyFirstTime" class="apikey-notice hidden">
+            このキーは一度だけ表示されます。安全な場所に保存してください。
+          </div>
+        </section>
+
+        <!-- Upload -->
+        <section class="upload-section">
+          <div class="upload-zone" id="uploadZone">
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/tiff" hidden>
+            <div class="upload-content">
+              <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <p class="upload-text">写真をドラッグ＆ドロップ</p>
+              <p class="upload-sub">または<span class="link">クリックして選択</span> · JPEG / PNG / WebP / TIFF · 最大20MB</p>
+            </div>
+          </div>
+        </section>
+
+        <div id="loading" class="loading hidden">
+          <div class="spinner"></div>
+          <p>検証中...</p>
+        </div>
+        <div id="errorBox" class="error-box hidden"></div>
+
+        <section id="results" class="results hidden">
+          <!-- スコア -->
+          <div class="card score-card">
+            <div class="score-gauge">
+              <svg viewBox="0 0 100 100" class="gauge-svg">
+                <circle class="gauge-bg" cx="50" cy="50" r="42"/>
+                <circle class="gauge-fill" id="gaugeFill" cx="50" cy="50" r="42"/>
+              </svg>
+              <div class="score-center">
+                <span class="score-num" id="scoreNum">--</span>
+                <span class="score-label">/ 100</span>
+              </div>
+            </div>
+            <div class="score-meta">
+              <div class="verdict-badge" id="verdictBadge"></div>
+              <div class="filename" id="resultFilename"></div>
+              <ul class="checklist" id="checklist"></ul>
+              <button class="btn-download" id="downloadBtn">PDF証明書をダウンロード</button>
+            </div>
+          </div>
+
+          <!-- 撮影情報 -->
+          <div class="card">
+            <h2>撮影情報</h2>
+            <p class="card-desc">カメラ・日時・場所など、写真に記録された撮影データを確認します。</p>
+            <table class="info-table" id="exifInfo"></table>
+            <div id="exifWarnings"></div>
+          </div>
+
+          <!-- 加工チェック -->
+          <div class="card">
+            <h2>加工・改ざんチェック</h2>
+            <p class="card-desc">画像を高精度に解析し、切り抜き・合成・修正などの痕跡を検出します。</p>
+            <div class="ela-verdict" id="elaVerdict"></div>
+            <table class="info-table" id="elaInfo"></table>
+          </div>
+
+          <!-- AI生成チェック -->
+          <div class="card">
+            <h2>AI生成チェック</h2>
+            <p class="card-desc">Midjourney・DALL-E などのAIが作った画像かどうかを判定します。</p>
+            <div class="ai-verdict" id="aiVerdict"></div>
+            <table class="info-table" id="aiInfo"></table>
+          </div>
+
+          <!-- 証拠として保存 -->
+          <div class="section-header">
+            <span>証拠として保存する</span>
+            <span class="section-sub">写真の存在・内容を第三者が検証できる形で残します</span>
+          </div>
+
+          <!-- タイムスタンプ -->
+          <div class="card ts-card">
+            <h2>📅 タイムスタンプ</h2>
+            <p class="card-desc">
+              取得すると、この写真の電子指紋が公的なタイムスタンプ局（FreeTSA.org）に送信されます。認定機関の電子署名付きで「この写真は取得日時に存在した」という証明書が発行され、後から第三者が検証できる形で保存されます。<br>
+              <span class="analogy">郵便局の消印と同じ仕組みで、日時を第三者が保証します。</span>
+            </p>
+            <div id="tsBadge" class="ts-badge ts-none">未取得</div>
+            <table class="info-table" id="tsInfo"></table>
+            <p class="note" id="tsNote"></p>
+            <div class="tsa-selector" id="tsaSelector">
+              <p class="tsa-label">タイムスタンプ局（TSA）を選択</p>
+              {% for p in tsa_providers %}
+              <label class="tsa-option">
+                <input type="radio" name="tsa" value="{{ p.key }}" {% if p.key == default_tsa %}checked{% endif %}>
+                <span>
+                  <span class="tsa-option-name">{{ p.name }}</span>
+                  <span class="tsa-option-desc">{{ p.description }}</span>
+                </span>
+              </label>
+              {% endfor %}
+            </div>
+            <button class="btn-ts" id="tsBtn">タイムスタンプを取得する</button>
+            <div id="tsResult" class="blockchain-result hidden"></div>
+          </div>
+
+          <!-- ブロックチェーン -->
+          <div class="card blockchain-card">
+            <h2>🔒 ブロックチェーン記録</h2>
+            <div class="network-badge" id="networkBadge"></div>
+            <p class="card-desc">
+              記録すると、この写真の電子指紋と真正性スコアが Polygon ブロックチェーン上のスマートコントラクトに書き込まれます。世界中のコンピュータが同じデータを分散保管するため、一度記録すると誰も削除・改ざんできません。<br>
+              <span class="analogy">石碑に刻んだ記録と同じで、内容を後から書き換えることは不可能です。</span>
+            </p>
+            <button class="btn-register" id="registerBtn">ブロックチェーンに記録する</button>
+            <div id="blockchainResult" class="blockchain-result hidden"></div>
+          </div>
+
+          <!-- 詳細情報 -->
+          <details class="card details-card">
+            <summary>詳細情報（技術者向け）</summary>
+            <div class="details-inner">
+              <h3>電子指紋（SHA-256 ハッシュ）</h3>
+              <p class="note">1ピクセルでも改変されると別の値になる、写真固有の64文字の文字列です。</p>
+              <div class="hash-value" id="hashValue"></div>
+              <h3>ファイル情報</h3>
+              <table class="info-table" id="fileInfo"></table>
+              <h3>ELA 解析数値</h3>
+              <table class="info-table" id="elaRaw"></table>
+              <h3>減点明細</h3>
+              <div id="deductions"></div>
+            </div>
+          </details>
+        </section>
+      </div>
+
+      <!-- ── Tab: 解析履歴 ── -->
+      <div class="tab-panel" id="tab-history">
+        <div class="panel-header">
+          <h1 class="panel-title">解析履歴</h1>
+          <p class="panel-desc">過去に検証した画像の一覧です。タイムスタンプ・ブロックチェーン記録の状況も確認できます。</p>
+        </div>
+
+        <div id="historyLoading" class="loading">
+          <div class="spinner"></div><p>読み込み中...</p>
+        </div>
+        <div id="historyEmpty" class="empty-state hidden">
+          <div class="empty-icon">📷</div>
+          <p>まだ解析履歴がありません。「解析」タブから画像をアップロードしてください。</p>
+        </div>
+        <div id="historyContent" class="hidden">
+          <div class="history-toolbar">
+            <span id="historyTotal" class="history-count"></span>
+            <button id="historyRefresh" class="btn-ghost">更新</button>
+          </div>
+          <div class="table-wrap">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>ファイル名</th>
+                  <th>スコア</th>
+                  <th>判定</th>
+                  <th>加工検査</th>
+                  <th>AI検査</th>
+                  <th>タイムスタンプ</th>
+                  <th>BC記録</th>
+                  <th>解析日時</th>
+                </tr>
+              </thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="historyPagination"></div>
         </div>
       </div>
-    </section>
 
-    <div id="loading" class="loading hidden">
-      <div class="spinner"></div>
-      <p>検証中...</p>
-    </div>
+      <!-- ── Tab: 利用状況 ── -->
+      <div class="tab-panel" id="tab-stats">
+        <div class="panel-header">
+          <h1 class="panel-title">利用状況</h1>
+          <p class="panel-desc">月次利用回数と解析結果の統計を確認できます。</p>
+        </div>
 
-    <div id="errorBox" class="error-box hidden"></div>
+        <div id="statsLoading" class="loading">
+          <div class="spinner"></div><p>読み込み中...</p>
+        </div>
+        <div id="statsContent" class="hidden">
+          <!-- KPI カード -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-blue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              </div>
+              <div class="stat-body">
+                <div class="stat-num" id="statTotal">—</div>
+                <div class="stat-label">累計解析数</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-green">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <div class="stat-body">
+                <div class="stat-num" id="statAvgScore">—</div>
+                <div class="stat-label">平均真正性スコア</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-purple">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <div class="stat-body">
+                <div class="stat-num" id="statTsCount">—</div>
+                <div class="stat-label">タイムスタンプ取得数</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-amber">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </div>
+              <div class="stat-body">
+                <div class="stat-num" id="statBcCount">—</div>
+                <div class="stat-label">ブロックチェーン記録数</div>
+              </div>
+            </div>
+          </div>
 
-    <section id="results" class="results hidden">
+          <!-- 当月利用状況 -->
+          <div class="card usage-card">
+            <h2>今月の利用状況</h2>
+            <div class="usage-bar-wrap">
+              <div class="usage-bar-labels">
+                <span id="usageBarCurrent">0</span>
+                <span id="usageBarLimit">— 回</span>
+              </div>
+              <div class="usage-bar-track">
+                <div class="usage-bar-fill" id="usageBarFill"></div>
+              </div>
+            </div>
+          </div>
 
-      <!-- スコア + チェックリスト -->
-      <div class="card score-card">
-        <div class="score-gauge">
-          <svg viewBox="0 0 100 100" class="gauge-svg">
-            <circle class="gauge-bg" cx="50" cy="50" r="42"/>
-            <circle class="gauge-fill" id="gaugeFill" cx="50" cy="50" r="42"/>
-          </svg>
-          <div class="score-center">
-            <span class="score-num" id="scoreNum">--</span>
-            <span class="score-label">/ 100</span>
+          <!-- 月次グラフ -->
+          <div class="card chart-card">
+            <h2>月次解析回数</h2>
+            <div class="chart-wrap">
+              <canvas id="monthlyChart"></canvas>
+            </div>
+          </div>
+
+          <!-- 判定分布 -->
+          <div class="card chart-card">
+            <h2>判定結果の分布</h2>
+            <div class="verdict-chart-wrap">
+              <canvas id="verdictChart"></canvas>
+            </div>
           </div>
         </div>
-        <div class="score-meta">
-          <div class="verdict-badge" id="verdictBadge"></div>
-          <div class="filename" id="resultFilename"></div>
-          <ul class="checklist" id="checklist"></ul>
-          <button class="btn-download" id="downloadBtn">PDF証明書をダウンロード</button>
+      </div>
+
+      <!-- ── Tab: アカウント ── -->
+      <div class="tab-panel" id="tab-profile">
+        <div class="panel-header">
+          <h1 class="panel-title">アカウント設定</h1>
+          <p class="panel-desc">会員情報の確認と設定変更ができます。</p>
+        </div>
+
+        <div id="profileLoading" class="loading">
+          <div class="spinner"></div><p>読み込み中...</p>
+        </div>
+        <div id="profileContent" class="hidden">
+
+          <!-- 会員情報 -->
+          <div class="card profile-card">
+            <h2>会員情報</h2>
+            <table class="info-table profile-table">
+              <tr><th>メールアドレス</th><td id="profileEmail">—</td></tr>
+              <tr><th>プラン</th><td id="profilePlan">—</td></tr>
+              <tr><th>登録日</th><td id="profileCreated">—</td></tr>
+              <tr><th>累計解析数</th><td id="profileTotal">—</td></tr>
+            </table>
+            <div id="profileUpgradeWrap" class="hidden" style="margin-top:16px">
+              <button id="profileUpgradeBtn" class="btn-upgrade">Business にアップグレード（¥9,800/月）</button>
+            </div>
+          </div>
+
+          <!-- API キー情報 -->
+          <div class="card profile-card">
+            <h2>API キー</h2>
+            <table class="info-table profile-table">
+              <tr><th>キー ID</th><td id="profileKeyId">—</td></tr>
+              <tr><th>発行日</th><td id="profileKeyCreated">—</td></tr>
+            </table>
+            <p class="card-desc" style="margin-top:12px">APIキーの値はセキュリティ上、発行時にのみ表示されます。再表示が必要な場合はサポートにご連絡ください。</p>
+          </div>
+
+          <!-- パスワード変更 -->
+          <div class="card profile-card">
+            <h2>パスワード変更</h2>
+            <div id="pwMsg" class="pw-msg hidden"></div>
+            <form id="pwForm" class="pw-form">
+              <div class="form-group">
+                <label class="form-label">現在のパスワード</label>
+                <input type="password" id="pwCurrent" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">新しいパスワード（8文字以上）</label>
+                <input type="password" id="pwNew" class="form-input" minlength="8" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">新しいパスワード（確認）</label>
+                <input type="password" id="pwConfirm" class="form-input" required>
+              </div>
+              <button type="submit" class="btn-primary">パスワードを変更する</button>
+            </form>
+          </div>
+
         </div>
       </div>
 
-      <!-- 撮影情報 -->
-      <div class="card">
-        <h2>撮影情報</h2>
-        <p class="card-desc">カメラ・日時・場所など、写真に記録された撮影データを確認します。</p>
-        <table class="info-table" id="exifInfo"></table>
-        <div id="exifWarnings"></div>
-      </div>
-
-      <!-- 加工チェック -->
-      <div class="card">
-        <h2>加工・改ざんチェック</h2>
-        <p class="card-desc">画像を高精度に解析し、切り抜き・合成・修正などの痕跡を検出します。</p>
-        <div class="ela-verdict" id="elaVerdict"></div>
-        <table class="info-table" id="elaInfo"></table>
-      </div>
-
-      <!-- AI生成チェック -->
-      <div class="card">
-        <h2>AI生成チェック</h2>
-        <p class="card-desc">Midjourney・DALL-E などのAIが作った画像かどうかを判定します。</p>
-        <div class="ai-verdict" id="aiVerdict"></div>
-        <table class="info-table" id="aiInfo"></table>
-      </div>
-
-      <!-- 証拠として保存する セクションヘッダー -->
-      <div class="section-header">
-        <span>証拠として保存する</span>
-        <span class="section-sub">写真の存在・内容を第三者が検証できる形で残します</span>
-      </div>
-
-      <!-- タイムスタンプ -->
-      <div class="card ts-card">
-        <h2>📅 タイムスタンプ</h2>
-        <p class="card-desc">
-          取得すると、この写真の電子指紋が公的なタイムスタンプ局（FreeTSA.org）に送信されます。認定機関の電子署名付きで「この写真は取得日時に存在した」という証明書が発行され、後から第三者が検証できる形で保存されます。<br>
-          <span class="analogy">郵便局の消印と同じ仕組みで、日時を第三者が保証します。</span>
-        </p>
-        <div id="tsBadge" class="ts-badge ts-none">未取得</div>
-        <table class="info-table" id="tsInfo"></table>
-        <p class="note" id="tsNote"></p>
-        <div class="tsa-selector" id="tsaSelector">
-          <p class="tsa-label">タイムスタンプ局（TSA）を選択</p>
-          {% for p in tsa_providers %}
-          <label class="tsa-option">
-            <input type="radio" name="tsa" value="{{ p.key }}" {% if p.key == default_tsa %}checked{% endif %}>
-            <span>
-              <span class="tsa-option-name">{{ p.name }}</span>
-              <span class="tsa-option-desc">{{ p.description }}</span>
-            </span>
-          </label>
-          {% endfor %}
-        </div>
-        <button class="btn-ts" id="tsBtn">タイムスタンプを取得する</button>
-        <div id="tsResult" class="blockchain-result hidden"></div>
-      </div>
-
-      <!-- ブロックチェーン記録 -->
-      <div class="card blockchain-card">
-        <h2>🔒 ブロックチェーン記録</h2>
-        <div class="network-badge" id="networkBadge"></div>
-        <p class="card-desc">
-          記録すると、この写真の電子指紋と真正性スコアが Polygon ブロックチェーン上のスマートコントラクトに書き込まれます。世界中のコンピュータが同じデータを分散保管するため、一度記録すると誰も削除・改ざんできません。<br>
-          <span class="analogy">石碑に刻んだ記録と同じで、内容を後から書き換えることは不可能です。</span>
-        </p>
-        <button class="btn-register" id="registerBtn">ブロックチェーンに記録する</button>
-        <div id="blockchainResult" class="blockchain-result hidden"></div>
-      </div>
-
-      <!-- 詳細情報（折りたたみ） -->
-      <details class="card details-card">
-        <summary>詳細情報（技術者向け）</summary>
-        <div class="details-inner">
-          <h3>電子指紋（SHA-256 ハッシュ）</h3>
-          <p class="note">1ピクセルでも改変されると別の値になる、写真固有の64文字の文字列です。</p>
-          <div class="hash-value" id="hashValue"></div>
-          <h3>ファイル情報</h3>
-          <table class="info-table" id="fileInfo"></table>
-          <h3>ELA 解析数値</h3>
-          <table class="info-table" id="elaRaw"></table>
-          <h3>減点明細</h3>
-          <div id="deductions"></div>
-        </div>
-      </details>
-
-    </section>
-  </main>
+    </main>
+  </div>
 
   <footer>
     <p>Imprint v0.9.0 — Photo Authenticity Service</p>
