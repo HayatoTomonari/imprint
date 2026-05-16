@@ -153,7 +153,7 @@ C:\Users\info\PycharmProjects\Imprint\
 | `IMPRINT_CONTRACT_ADDRESS` | デプロイ済みコントラクトアドレス |
 | `POLYGON_CHAIN_ID` | `80002`=Amoy testnet / `137`=mainnet |
 | `API_KEY` | WebフロントエンドがHTMLに埋め込むAPIキー |
-| `HUGGINGFACE_API_KEY` | HuggingFace APIキー（無料で取得可） |
+| `HUGGINGFACE_API_KEY` | HuggingFace APIキー ✅ **Render 環境変数に設定済み（2026-05-17）** |
 | `TSA_URL` | タイムスタンプ局URL（デフォルト: `https://freetsa.org/tsr`） |
 
 ## 起動方法
@@ -220,7 +220,111 @@ python -m uvicorn app.main:app --reload
 - **DNS**: Cloudflare で管理。`api` サブドメインは Render へ CNAME
 - **注意**: 無料プランのため再デプロイで DB リセット。本番運用は Render Starter（$7/月）へ移行推奨
 
-## 次の実装候補（優先度順）
-1. **Render Starter プランへ移行** — DB 永続化（再デプロイで APIキーが消えなくなる）
-2. **Polygon Mainnet デプロイ** — オペレーション作業（HANDOFF 内の手順を参照）
-3. **HuggingFace API キー設定** — Render 環境変数に追加で AI生成検出を有効化
+## 完了済みタスク（最新順）
+
+| 日付 | 内容 |
+|------|------|
+| 2026-05-17 | HuggingFace API キーを Render 環境変数に設定。AI生成検出が本番で動作中 |
+| 2026-05-17 | マーケティングサイト：グラフ・チャート・リングチャート追加（4箇所） |
+| 2026-05-16 | マーケティングサイト：Lucide アイコン刷新・Before/After イラスト追加 |
+
+---
+
+## リリース前チェックリスト
+
+### 🔴 クリティカル（これなしでは本番運用不可）
+
+- [ ] **Render Starter プランへ移行（$7/月）**
+  - 現状: 無料プランは再デプロイで SQLite がリセット → ユーザー・APIキー全消え
+  - 対応: Render ダッシュボードでプランアップグレード → `render.yaml` に `disk:` を追加して永続ボリュームをマウント
+  - 参考: `IMPRINT_DB_PATH=/data/imprint.db` に変更する
+
+- [ ] **Render 無料プランの cold start 対策**
+  - 現状: 15分アクセスなしでスリープ → 初回リクエストに 30〜60 秒かかる
+  - 対応A: Starter プランへ移行（常時起動）
+  - 対応B: UptimeRobot 等で 10 分おきに `/health` を ping
+
+- [ ] **Polygon Mainnet へコントラクトデプロイ**
+  - 現状: Amoy testnet（Chain ID 80002）のみ → 「永久記録」として信頼できない
+  - 手順: HANDOFF 内 "Mainnet デプロイ手順" を参照
+  - 必要: Alchemy/Infura の RPC URL + ウォレットに MATIC 0.01 枚程度
+
+- [ ] **Stripe 本番キーを Render 環境変数に設定**
+  - 未設定変数: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_BUSINESS_PRICE_ID`
+  - コードは実装済み（`/billing/checkout`, `/billing/webhook`）。キー設定だけで課金フローが動く
+  - Stripe ダッシュボードで Business プラン価格ID を作成 → env に設定
+
+### 🟡 法務（日本でサービス提供するために必要）
+
+- [ ] **プライバシーポリシーページを作成**
+  - 現状: フッターのリンクが `href="#"` のプレースホルダー
+  - 個人情報保護法・GDPR 対応が必要。最低限: 取得情報・利用目的・第三者提供・問い合わせ先
+
+- [ ] **利用規約ページを作成**
+  - 現状: 同上プレースホルダー
+  - B2B SaaS として免責・API乱用禁止・知的財産権・解約条件を明記
+
+- [ ] **特定商取引法に基づく表示ページを作成**
+  - 有料プランがある場合、日本法で必須
+  - 記載事項: 事業者名・住所・電話番号・代金・申し込み方法・キャンセルポリシー
+
+### 🟡 セキュリティ
+
+- [ ] **パスワードリセット機能**
+  - 現状: `POST /auth/profile/password` はログイン済み前提。ログアウト状態でリセットできない
+  - 対応: メール送信（SendGrid/Resend）でトークン付きリセットリンクを送る仕組みが必要
+
+- [ ] **メールアドレス確認（登録時）**
+  - 現状: 他人のメールアドレスで登録可能（確認なし）
+  - 対応: 登録時にメール送信 → クリックで is_verified フラグを立てる
+
+- [ ] **APIレート制限（DDoS対策）**
+  - 現状: FastAPI のミドルウェアにレート制限なし
+  - 対応: `slowapi` または Cloudflare WAF ルールで IP ごとに制限
+
+- [ ] **ファイルアップロードのバリデーション強化**
+  - 現状: `accept="image/*"` はクライアント側のみ
+  - 対応: サーバー側で MIME type・マジックバイト・最大サイズを厳密に検証
+
+### 🟢 運用・監視
+
+- [ ] **エラーモニタリング（Sentry 等）**
+  - 現状: Render ログのみ。本番でのエラー検知が手動
+  - 対応: `sentry-sdk[fastapi]` を追加、無料枠で開始可能
+
+- [ ] **アップタイム監視**
+  - UptimeRobot や Better Uptime で `/health` を監視 → Slack/メール通知
+
+- [ ] **SQLite バックアップ戦略**
+  - Render Starter のディスクはスナップショットなし
+  - 対応: cron で `imprint.db` を S3/R2 へ定期バックアップ、または PostgreSQL（Neon/Supabase 無料枠）へ移行
+
+- [ ] **Google Analytics / 計測タグ**
+  - 現状: マーケティングサイトにトラッキングコードなし
+  - LP → 登録 のコンバージョン計測ができない
+
+### 🟢 UX 改善
+
+- [ ] **お問い合わせフォーム**
+  - 現状: `mailto:` リンクのみ。フォームなし
+  - 対応: Formspree/Netlify Forms 等で簡易フォームを設置
+
+- [ ] **OGP / SNS シェア用メタタグ**
+  - 現状: LP に `og:image` がない
+  - 対応: Cloudinary 等で OGP 画像を生成してタグに設定
+
+- [ ] **登録完了メール**
+  - 現状: 登録後のウェルカムメールなし
+  - 対応: SendGrid/Resend の無料枠で自動送信
+
+### ✅ 完了済み
+
+- [x] HuggingFace API キー設定（Render 環境変数、2026-05-17）
+- [x] マーケティングサイト本番公開（Cloudflare Pages）
+- [x] API サーバー本番公開（Render）
+- [x] Stripe 課金コード実装（キー設定待ち）
+- [x] ユーザー登録・ログイン・プラン管理
+- [x] RFC 3161 タイムスタンプ（FreeTSA/DigiCert/Sectigo）
+- [x] Polygon Amoy testnet ブロックチェーン記録
+- [x] PDF 証明書発行（日本語対応）
+- [x] 管理者ユーザー管理エンドポイント
