@@ -61,9 +61,9 @@
           多層解析で「この写真は本物だ」を証明できる時代へ。
         </p>
         <div class="hero-actions">
-          <a href="https://api.imprint-digital.jp/register" class="btn-primary btn-lg">無料でスタート</a>
-          <a href="https://api.imprint-digital.jp" class="btn-outline-light btn-lg" target="_blank" rel="noopener">
-            デモを試す <span class="arrow">→</span>
+          <a href="https://api.imprint-digital.jp/register" class="btn-primary btn-lg">無料で画像を検証する</a>
+          <a href="#demo" class="btn-outline-light btn-lg">
+            今すぐデモを体験 <span class="arrow">→</span>
           </a>
         </div>
         <div class="hero-trust">
@@ -161,6 +161,49 @@
     </div>
   </div>
 
+  <!-- ── Cert bar ── -->
+  <div class="cert-bar">
+    <div class="container">
+      <div class="cert-grid">
+        <div class="cert-item">
+          <span class="cert-ico">📡</span>
+          <div>
+            <div class="cert-name">RFC 3161</div>
+            <div class="cert-desc">国際標準タイムスタンプ</div>
+          </div>
+        </div>
+        <div class="cert-item">
+          <span class="cert-ico">⛓</span>
+          <div>
+            <div class="cert-name">Polygon Mainnet</div>
+            <div class="cert-desc">パブリックBC永久記録</div>
+          </div>
+        </div>
+        <div class="cert-item">
+          <span class="cert-ico">🔐</span>
+          <div>
+            <div class="cert-name">SHA-256</div>
+            <div class="cert-desc">暗号学的ハッシュ証明</div>
+          </div>
+        </div>
+        <div class="cert-item">
+          <span class="cert-ico">📜</span>
+          <div>
+            <div class="cert-name">X.509 CA Chain</div>
+            <div class="cert-desc">CA証明書チェーン検証</div>
+          </div>
+        </div>
+        <div class="cert-item">
+          <span class="cert-ico">🤖</span>
+          <div>
+            <div class="cert-name">HuggingFace AI</div>
+            <div class="cert-desc">最先端AI生成検出</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Industry trust bar ── -->
   <div class="industry-bar">
     <div class="container">
@@ -177,6 +220,84 @@
       </div>
     </div>
   </div>
+
+  <!-- ── Live Demo ── -->
+  <section class="section demo-section" id="demo">
+    <div class="container">
+      <div class="section-label reveal">ライブデモ</div>
+      <h2 class="section-title reveal">写真を今すぐドロップして検証</h2>
+      <p class="section-sub reveal">実際の解析フローをシミュレーション。本番では AI・ELA・RFC 3161 タイムスタンプが実行されます。</p>
+      <div class="demo-widget reveal">
+        <div class="demo-widget-header">
+          <div class="demo-widget-dots">
+            <span style="background:#ef4444"></span>
+            <span style="background:#f59e0b"></span>
+            <span style="background:#22c55e"></span>
+          </div>
+          <span class="demo-widget-title">Imprint — 真正性検証デモ</span>
+        </div>
+
+        <!-- Drop zone -->
+        <div class="demo-drop-zone" id="demoDropZone">
+          <div class="demo-drop-icon">📷</div>
+          <div class="demo-drop-title">写真をドラッグ&ドロップ</div>
+          <div class="demo-drop-sub">JPEG / PNG / HEIC · 最大 20MB</div>
+          <label class="demo-pick-btn" for="demoFile">ファイルを選択</label>
+          <input type="file" id="demoFile" accept="image/*" style="display:none">
+          <p class="demo-disclaimer">※ このデモは模擬シミュレーションです。画像データはサーバーに送信されません。</p>
+        </div>
+
+        <!-- Scanning / Result -->
+        <div id="demoResult" style="display:none">
+          <!-- Scanning -->
+          <div class="demo-scanning" id="demoScanning">
+            <div class="scan-image-wrap">
+              <img id="demoPreviewImg" alt="検証中の画像">
+              <div class="scan-line"></div>
+            </div>
+            <div class="scan-steps">
+              <div class="scan-step">EXIF メタデータ解析中…</div>
+              <div class="scan-step">ELA 誤差水準解析中…</div>
+              <div class="scan-step">AI 生成画像検出中…</div>
+              <div class="scan-step">SHA-256 ハッシュ生成中…</div>
+              <div class="scan-step">タイムスタンプ記録中…</div>
+              <div class="scan-step">真正性スコア算出中…</div>
+            </div>
+          </div>
+
+          <!-- Result card -->
+          <div class="demo-result-card" id="demoResultCard" style="display:none">
+            <div class="dr-score-section">
+              <div class="dr-gauge-wrap">
+                <svg viewBox="0 0 90 90" class="dr-gauge-svg">
+                  <circle cx="45" cy="45" r="38" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="7"/>
+                  <circle id="drGaugeCircle" cx="45" cy="45" r="38" fill="none"
+                    stroke="#6366f1" stroke-width="7"
+                    stroke-linecap="round"
+                    stroke-dasharray="239" stroke-dashoffset="239"
+                    transform="rotate(-90 45 45)"/>
+                </svg>
+                <div class="dr-score-center">
+                  <div class="dr-score-num" id="drScoreNum">0</div>
+                  <div class="dr-score-label">/100</div>
+                </div>
+              </div>
+              <div>
+                <div class="dr-verdict-badge verdict-high" id="drVerdictBadge">真正性高</div>
+                <div class="dr-filename" id="drFilename">image.jpg</div>
+                <div class="dr-hash" id="drHash">SHA-256: a3f8c2d1e9b7…</div>
+              </div>
+            </div>
+            <div class="dr-checks" id="drChecks"></div>
+            <div class="dr-actions">
+              <a href="https://api.imprint-digital.jp/register" class="btn-primary">本番環境で使ってみる →</a>
+              <button class="demo-reset-btn" id="demoResetBtn">別の画像を試す</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- ── Problem ── -->
   <section class="section section-light" id="problem">
@@ -422,6 +543,44 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Before / After ── -->
+  <section class="section ba-section" id="before-after">
+    <div class="container">
+      <div class="section-label reveal">導入効果</div>
+      <h2 class="section-title reveal">Imprint で、確認業務が根本から変わる</h2>
+      <p class="section-sub reveal">写真の信頼性確認を、目視・主観から自動・客観・証明可能なプロセスへ。</p>
+      <div class="ba-grid mt-48">
+        <div class="ba-before-col reveal">
+          <span class="ba-tag ba-tag-before">導入前</span>
+          <div class="ba-col-title">目視・手動確認</div>
+          <ul class="ba-items">
+            <li class="ba-item bad"><span class="ba-ico">✗</span><span>数時間〜数日かかる目視確認</span></li>
+            <li class="ba-item bad"><span class="ba-ico">✗</span><span>担当者の主観・経験に依存</span></li>
+            <li class="ba-item bad"><span class="ba-ico">✗</span><span>AI生成・微細な加工は見抜けない</span></li>
+            <li class="ba-item bad"><span class="ba-ico">✗</span><span>証拠として裁判所に提出できない</span></li>
+            <li class="ba-item bad"><span class="ba-ico">✗</span><span>改ざん・紛争リスクが残り続ける</span></li>
+          </ul>
+        </div>
+        <div class="ba-divider reveal">
+          <div class="ba-divider-line"></div>
+          <div class="ba-divider-arrow">→</div>
+          <div class="ba-divider-line"></div>
+        </div>
+        <div class="ba-after-col reveal">
+          <span class="ba-tag ba-tag-after">Imprint 導入後</span>
+          <div class="ba-col-title">自動・客観・証明可能</div>
+          <ul class="ba-items">
+            <li class="ba-item good"><span class="ba-ico">✓</span><span>数秒で自動検証が完了</span></li>
+            <li class="ba-item good"><span class="ba-ico">✓</span><span>0〜100点の定量スコアで客観判断</span></li>
+            <li class="ba-item good"><span class="ba-ico">✓</span><span>AI検出・ELA解析で加工を可視化</span></li>
+            <li class="ba-item good"><span class="ba-ico">✓</span><span>PDF証明書・BC記録で法的証拠化</span></li>
+            <li class="ba-item good"><span class="ba-ico">✓</span><span>第三者が検証可能・改ざん不可能</span></li>
+          </ul>
+        </div>
       </div>
     </div>
   </section>
