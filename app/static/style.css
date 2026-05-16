@@ -137,41 +137,125 @@ header {
 
 /* ── Sidebar ── */
 .sidebar {
-  width: 200px;
+  width: 220px;
   flex-shrink: 0;
   background: #fff;
   border-right: 1px solid var(--border);
-  padding: 20px 0;
+  padding: 0;
   position: sticky;
   top: 57px;
   height: calc(100vh - 57px);
   overflow-y: auto;
   transition: transform .25s ease;
+  display: flex;
+  flex-direction: column;
 }
+
+/* ユーザー情報 */
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 14px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+.sidebar-user-info { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.sidebar-user-email {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+/* セクションラベル */
+.sidebar-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9ca3af;
+  letter-spacing: 1.2px;
+  padding: 16px 16px 6px;
+  text-transform: uppercase;
+}
+
+/* ナビ */
 .sidebar-nav {
   list-style: none;
   padding: 0 10px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 .sidebar-link {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 9px 12px;
   border-radius: 8px;
-  color: #374151;
+  color: #4b5563;
   text-decoration: none;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
   transition: background .15s, color .15s;
+  position: relative;
 }
 .sidebar-link svg { color: #9ca3af; flex-shrink: 0; transition: color .15s; }
 .sidebar-link:hover { background: #f3f4f6; color: #111827; }
 .sidebar-link:hover svg { color: #6366f1; }
-.sidebar-link.active { background: #eef2ff; color: #4f46e5; }
+.sidebar-link.active {
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 600;
+}
 .sidebar-link.active svg { color: #4f46e5; }
+.sidebar-link.active::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 22px;
+  background: #4f46e5;
+  border-radius: 0 3px 3px 0;
+}
+
+/* ログアウト */
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px 10px;
+  border-top: 1px solid var(--border);
+}
+.sidebar-logout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 13px;
+  transition: background .15s, color .15s;
+}
+.sidebar-logout svg { color: #9ca3af; }
+.sidebar-logout:hover { background: #fef2f2; color: #dc2626; }
+.sidebar-logout:hover svg { color: #dc2626; }
 
 /* ── Main content ── */
 .dashboard-main {
@@ -637,13 +721,25 @@ footer { text-align: center; padding: 28px 16px; font-size: 12px; color: var(--s
 .page-btn.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
 .page-btn:disabled { opacity: .4; cursor: default; }
 
-/* ── Empty state ── */
+/* ── Empty / Error state ── */
 .empty-state {
   text-align: center;
   padding: 60px 24px;
   color: var(--sub);
 }
 .empty-icon { font-size: 40px; margin-bottom: 12px; }
+.tab-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  color: #b91c1c;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tab-error::before { content: '⚠'; font-size: 16px; }
 
 /* ──────────────────────────────────────────
    Stats Tab
@@ -780,6 +876,7 @@ footer { text-align: center; padding: 28px 16px; font-size: 12px; color: var(--s
   .dashboard-main { padding: 20px 14px 40px; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .header-user .user-email-text { display: none; }
+  .sidebar-link.active::before { left: -10px; }
 }
 
 .hidden { display: none !important; }

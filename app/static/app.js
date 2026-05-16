@@ -500,6 +500,28 @@ function fmtDate(iso) {
 }
 
 // ══════════════════════════════════════════════════════════════
+//  FETCH HELPER（タイムアウト付き）
+// ══════════════════════════════════════════════════════════════
+
+async function apiFetch(url, opts = {}, timeoutMs = 20000) {
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...opts, signal: ctrl.signal, credentials: 'same-origin' });
+    clearTimeout(tid);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `サーバーエラー (HTTP ${res.status})`);
+    }
+    return res;
+  } catch (err) {
+    clearTimeout(tid);
+    if (err.name === 'AbortError') throw new Error('応答がタイムアウトしました。再度お試しください。');
+    throw err;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 //  SIDEBAR NAVIGATION & TAB SWITCHING
 // ══════════════════════════════════════════════════════════════
 
@@ -553,14 +575,15 @@ const AI_JP      = { likely_real: '本物', suspicious: '疑い', ai_generated: 
 
 async function loadHistory(page) {
   _historyPage = page;
-  const loadEl   = document.getElementById('historyLoading');
-  const emptyEl  = document.getElementById('historyEmpty');
+  const loadEl    = document.getElementById('historyLoading');
+  const errEl     = document.getElementById('historyError');
+  const emptyEl   = document.getElementById('historyEmpty');
   const contentEl = document.getElementById('historyContent');
 
-  show(loadEl); hide(emptyEl); hide(contentEl);
+  show(loadEl); hide(errEl); hide(emptyEl); hide(contentEl);
 
   try {
-    const res  = await fetch(`/dashboard/history?page=${page}`, { credentials: 'same-origin' });
+    const res  = await apiFetch(`/dashboard/history?page=${page}`);
     const data = await res.json();
 
     hide(loadEl);
@@ -618,9 +641,10 @@ async function loadHistory(page) {
       }
       paginationEl.innerHTML = html;
     }
-  } catch {
+  } catch (err) {
     hide(loadEl);
-    show(emptyEl);
+    errEl.textContent = err.message || '読み込みに失敗しました';
+    show(errEl);
   }
 }
 
@@ -639,12 +663,13 @@ function escHtml(s) {
 // ══════════════════════════════════════════════════════════════
 
 async function loadStats() {
-  const loadEl   = document.getElementById('statsLoading');
+  const loadEl    = document.getElementById('statsLoading');
+  const errEl     = document.getElementById('statsError');
   const contentEl = document.getElementById('statsContent');
-  show(loadEl); hide(contentEl);
+  show(loadEl); hide(errEl); hide(contentEl);
 
   try {
-    const res  = await fetch('/dashboard/stats', { credentials: 'same-origin' });
+    const res  = await apiFetch('/dashboard/stats');
     const data = await res.json();
     hide(loadEl);
     show(contentEl);
@@ -717,9 +742,10 @@ async function loadStats() {
         },
       });
     }
-  } catch {
+  } catch (err) {
     hide(loadEl);
-    show(contentEl);
+    errEl.textContent = err.message || '読み込みに失敗しました';
+    show(errEl);
   }
 }
 
@@ -733,7 +759,7 @@ async function loadProfile() {
   show(loadEl); hide(contentEl);
 
   try {
-    const res  = await fetch('/auth/profile', { credentials: 'same-origin' });
+    const res  = await apiFetch('/auth/profile');
     const data = await res.json();
     hide(loadEl);
     show(contentEl);

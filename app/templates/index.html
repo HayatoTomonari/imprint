@@ -27,10 +27,7 @@
       <div class="logo">Imprint</div>
       <div class="tagline">Photo Authenticity</div>
       <div class="header-user">
-        <span class="plan-badge plan-{{ user_plan }}">{{ plan_label }}</span>
-        <span class="usage-count">{{ usage_count }} / {{ usage_limit }} 回</span>
-        <span class="user-email-text">{{ user_email }}</span>
-        <a href="/auth/logout" class="logout-link">ログアウト</a>
+        <span class="usage-count">今月 {{ usage_count }} / {{ usage_limit }} 回</span>
       </div>
     </div>
   </header>
@@ -40,32 +37,52 @@
 
     <!-- Sidebar -->
     <nav class="sidebar" id="sidebar">
+
+      <!-- ユーザー情報 -->
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">{{ user_email[0] | upper }}</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-email" title="{{ user_email }}">{{ user_email }}</div>
+          <span class="plan-badge plan-{{ user_plan }}">{{ plan_label }}</span>
+        </div>
+      </div>
+
+      <!-- ナビ -->
+      <p class="sidebar-section-label">MENU</p>
       <ul class="sidebar-nav">
         <li>
           <a href="#" class="sidebar-link active" data-tab="tab-analyze">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             <span>解析</span>
           </a>
         </li>
         <li>
           <a href="#" class="sidebar-link" data-tab="tab-history">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg>
             <span>解析履歴</span>
           </a>
         </li>
         <li>
           <a href="#" class="sidebar-link" data-tab="tab-stats">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 16 4-4 4 4 4-4"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 16 4-4 4 4 4-4"/></svg>
             <span>利用状況</span>
           </a>
         </li>
         <li>
           <a href="#" class="sidebar-link" data-tab="tab-profile">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
             <span>アカウント</span>
           </a>
         </li>
       </ul>
+
+      <!-- ログアウト -->
+      <div class="sidebar-footer">
+        <a href="/auth/logout" class="sidebar-logout">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          ログアウト
+        </a>
+      </div>
     </nav>
 
     <!-- Main content -->
@@ -223,6 +240,7 @@
         <div id="historyLoading" class="loading">
           <div class="spinner"></div><p>読み込み中...</p>
         </div>
+        <div id="historyError" class="tab-error hidden"></div>
         <div id="historyEmpty" class="empty-state hidden">
           <div class="empty-icon">📷</div>
           <p>まだ解析履歴がありません。「解析」タブから画像をアップロードしてください。</p>
@@ -263,6 +281,7 @@
         <div id="statsLoading" class="loading">
           <div class="spinner"></div><p>読み込み中...</p>
         </div>
+        <div id="statsError" class="tab-error hidden"></div>
         <div id="statsContent" class="hidden">
           <!-- KPI カード -->
           <div class="stats-grid">
