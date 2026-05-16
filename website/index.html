@@ -66,22 +66,6 @@
             今すぐデモを体験 <span class="arrow">→</span>
           </a>
         </div>
-        <div class="hero-trust">
-          <div class="trust-item">
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 1L9.5 5.5L14 6.27L10.75 9.45L11.5 14L7.5 11.77L3.5 14L4.25 9.45L1 6.27L5.5 5.5L7.5 1Z" fill="#4ade80"/></svg>
-            カード不要・即日開始
-          </div>
-          <span class="trust-sep">·</span>
-          <div class="trust-item">
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 1L9.5 5.5L14 6.27L10.75 9.45L11.5 14L7.5 11.77L3.5 14L4.25 9.45L1 6.27L5.5 5.5L7.5 1Z" fill="#4ade80"/></svg>
-            RFC 3161 国際標準
-          </div>
-          <span class="trust-sep">·</span>
-          <div class="trust-item">
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 1L9.5 5.5L14 6.27L10.75 9.45L11.5 14L7.5 11.77L3.5 14L4.25 9.45L1 6.27L5.5 5.5L7.5 1Z" fill="#4ade80"/></svg>
-            Polygon ブロックチェーン
-          </div>
-        </div>
       </div>
 
       <div class="hero-visual">
@@ -161,44 +145,17 @@
     </div>
   </div>
 
-  <!-- ── Cert bar ── -->
-  <div class="cert-bar">
+  <!-- ── Tech bar ── -->
+  <div class="tech-bar">
     <div class="container">
-      <div class="cert-grid">
-        <div class="cert-item">
-          <span class="cert-ico">📡</span>
-          <div>
-            <div class="cert-name">RFC 3161</div>
-            <div class="cert-desc">国際標準タイムスタンプ</div>
-          </div>
-        </div>
-        <div class="cert-item">
-          <span class="cert-ico">⛓</span>
-          <div>
-            <div class="cert-name">Polygon Mainnet</div>
-            <div class="cert-desc">パブリックBC永久記録</div>
-          </div>
-        </div>
-        <div class="cert-item">
-          <span class="cert-ico">🔐</span>
-          <div>
-            <div class="cert-name">SHA-256</div>
-            <div class="cert-desc">暗号学的ハッシュ証明</div>
-          </div>
-        </div>
-        <div class="cert-item">
-          <span class="cert-ico">📜</span>
-          <div>
-            <div class="cert-name">X.509 CA Chain</div>
-            <div class="cert-desc">CA証明書チェーン検証</div>
-          </div>
-        </div>
-        <div class="cert-item">
-          <span class="cert-ico">🤖</span>
-          <div>
-            <div class="cert-name">HuggingFace AI</div>
-            <div class="cert-desc">最先端AI生成検出</div>
-          </div>
+      <div class="tech-bar-inner">
+        <span class="tech-bar-label">採用技術</span>
+        <div class="tech-bar-pills">
+          <span class="tech-pill">📡 RFC 3161</span>
+          <span class="tech-pill">⛓ Polygon Mainnet</span>
+          <span class="tech-pill">🔐 SHA-256</span>
+          <span class="tech-pill">📜 X.509 CA Chain</span>
+          <span class="tech-pill">🤖 HuggingFace AI</span>
         </div>
       </div>
     </div>
@@ -238,13 +195,13 @@
         </div>
 
         <!-- Drop zone -->
-        <div class="demo-drop-zone" id="demoDropZone">
+        <div class="demo-drop-zone" id="demoDropZone" role="button" tabindex="0">
           <div class="demo-drop-icon">📷</div>
           <div class="demo-drop-title">写真をドラッグ&ドロップ</div>
-          <div class="demo-drop-sub">JPEG / PNG / HEIC · 最大 20MB</div>
-          <label class="demo-pick-btn" for="demoFile">ファイルを選択</label>
+          <div class="demo-drop-sub">または</div>
+          <span class="demo-pick-btn">ファイルを選択</span>
           <input type="file" id="demoFile" accept="image/*" style="display:none">
-          <p class="demo-disclaimer">※ このデモは模擬シミュレーションです。画像データはサーバーに送信されません。</p>
+          <p class="demo-disclaimer">※ 画像データはサーバーに送信されません（ローカル処理）</p>
         </div>
 
         <!-- Scanning / Result -->
@@ -548,37 +505,33 @@
   </section>
 
   <!-- ── Before / After ── -->
-  <section class="section ba-section" id="before-after">
+  <section class="section" style="background:#f8fafc;" id="before-after">
     <div class="container">
       <div class="section-label reveal">導入効果</div>
       <h2 class="section-title reveal">Imprint で、確認業務が根本から変わる</h2>
       <p class="section-sub reveal">写真の信頼性確認を、目視・主観から自動・客観・証明可能なプロセスへ。</p>
-      <div class="ba-grid mt-48">
-        <div class="ba-before-col reveal">
-          <span class="ba-tag ba-tag-before">導入前</span>
-          <div class="ba-col-title">目視・手動確認</div>
-          <ul class="ba-items">
-            <li class="ba-item bad"><span class="ba-ico">✗</span><span>数時間〜数日かかる目視確認</span></li>
-            <li class="ba-item bad"><span class="ba-ico">✗</span><span>担当者の主観・経験に依存</span></li>
-            <li class="ba-item bad"><span class="ba-ico">✗</span><span>AI生成・微細な加工は見抜けない</span></li>
-            <li class="ba-item bad"><span class="ba-ico">✗</span><span>証拠として裁判所に提出できない</span></li>
-            <li class="ba-item bad"><span class="ba-ico">✗</span><span>改ざん・紛争リスクが残り続ける</span></li>
+      <div class="bacomp mt-48">
+        <div class="bacomp-card bacomp-before reveal">
+          <div class="bacomp-tag" style="background:#fee2e2;color:#b91c1c;">導入前</div>
+          <div class="bacomp-title">目視・手動確認</div>
+          <ul class="bacomp-list">
+            <li class="bacomp-item bacomp-bad">数時間〜数日かかる目視確認</li>
+            <li class="bacomp-item bacomp-bad">担当者の主観・経験に依存</li>
+            <li class="bacomp-item bacomp-bad">AI生成・微細な加工は見抜けない</li>
+            <li class="bacomp-item bacomp-bad">証拠として裁判所に提出できない</li>
+            <li class="bacomp-item bacomp-bad">改ざん・紛争リスクが残り続ける</li>
           </ul>
         </div>
-        <div class="ba-divider reveal">
-          <div class="ba-divider-line"></div>
-          <div class="ba-divider-arrow">→</div>
-          <div class="ba-divider-line"></div>
-        </div>
-        <div class="ba-after-col reveal">
-          <span class="ba-tag ba-tag-after">Imprint 導入後</span>
-          <div class="ba-col-title">自動・客観・証明可能</div>
-          <ul class="ba-items">
-            <li class="ba-item good"><span class="ba-ico">✓</span><span>数秒で自動検証が完了</span></li>
-            <li class="ba-item good"><span class="ba-ico">✓</span><span>0〜100点の定量スコアで客観判断</span></li>
-            <li class="ba-item good"><span class="ba-ico">✓</span><span>AI検出・ELA解析で加工を可視化</span></li>
-            <li class="ba-item good"><span class="ba-ico">✓</span><span>PDF証明書・BC記録で法的証拠化</span></li>
-            <li class="ba-item good"><span class="ba-ico">✓</span><span>第三者が検証可能・改ざん不可能</span></li>
+        <div class="bacomp-arrow reveal">→</div>
+        <div class="bacomp-card bacomp-after reveal">
+          <div class="bacomp-tag" style="background:rgba(99,102,241,.15);color:#6366f1;">Imprint 導入後</div>
+          <div class="bacomp-title" style="color:#6366f1;">自動・客観・証明可能</div>
+          <ul class="bacomp-list">
+            <li class="bacomp-item bacomp-good">数秒で自動検証が完了</li>
+            <li class="bacomp-item bacomp-good">0〜100点の定量スコアで客観判断</li>
+            <li class="bacomp-item bacomp-good">AI検出・ELA解析で加工を可視化</li>
+            <li class="bacomp-item bacomp-good">PDF証明書・BC記録で法的証拠化</li>
+            <li class="bacomp-item bacomp-good">第三者が検証可能・改ざん不可能</li>
           </ul>
         </div>
       </div>

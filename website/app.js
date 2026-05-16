@@ -103,8 +103,12 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 
   if (!dropZone) return;
 
+  // クリックでファイル選択ダイアログを開く
+  dropZone.addEventListener('click', () => demoFile.click());
+  dropZone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') demoFile.click(); });
+
   dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragging'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
+  dropZone.addEventListener('dragleave', e => { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('dragging'); });
   dropZone.addEventListener('drop', e => {
     e.preventDefault();
     dropZone.classList.remove('dragging');
