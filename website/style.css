@@ -947,12 +947,16 @@ svg { display: block; flex-shrink: 0; }
   line-height: 1.2; letter-spacing: -.03em;
 }
 .bacomp-list { display: flex; flex-direction: column; gap: 10px; list-style: none; }
-.bacomp-item { padding: 11px 14px; border-radius: var(--r-sm); font-size: 14px; line-height: 1.5; }
-.bacomp-item::before { margin-right: 8px; font-weight: 700; }
+.bacomp-item { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: var(--r-sm); font-size: 14px; line-height: 1.5; }
+.bacomp-item::before { content: none; }
 .bacomp-bad  { background: #FEF2F2; color: var(--txt-muted); }
-.bacomp-bad::before  { content: '✗'; color: var(--red); }
+.bacomp-bad  .bacomp-icon { color: #ef4444; flex-shrink: 0; }
 .bacomp-good { background: rgba(37,99,235,.05); color: var(--txt); }
-.bacomp-good::before { content: '✓'; color: var(--green); }
+.bacomp-good .bacomp-icon { color: #16a34a; flex-shrink: 0; }
+.bacomp-illustration {
+  display: block; width: 100%; max-width: 540px;
+  height: auto; margin: 40px auto 0;
+}
 
 /* ── How it works ── */
 .steps-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
