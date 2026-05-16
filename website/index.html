@@ -305,6 +305,51 @@
           </div>
         </div>
       </div>
+
+      <!-- ── Fraud trend bar chart ── -->
+      <div class="chart-block reveal mt-48">
+        <div class="chart-badge">データで見る課題</div>
+        <p class="chart-caption">写真加工・偽造申請インシデントの増加推移（2020年=100とした指数）</p>
+        <svg viewBox="0 0 600 190" class="problem-bar-chart" aria-hidden="true">
+          <line x1="64" y1="145" x2="560" y2="145" stroke="#e2e8f0" stroke-width="1"/>
+          <line x1="64" y1="20"  x2="64"  y2="145" stroke="#e2e8f0" stroke-width="1"/>
+          <line x1="64" y1="50"  x2="560" y2="50"  stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4 3"/>
+          <line x1="64" y1="80"  x2="560" y2="80"  stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4 3"/>
+          <line x1="64" y1="110" x2="560" y2="110" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="55" y="148" text-anchor="end" font-size="10" fill="#cbd5e1">100</text>
+          <text x="55" y="114" text-anchor="end" font-size="10" fill="#cbd5e1">125</text>
+          <text x="55" y="83"  text-anchor="end" font-size="10" fill="#cbd5e1">150</text>
+          <text x="55" y="53"  text-anchor="end" font-size="10" fill="#cbd5e1">175</text>
+          <!-- Bars: 2020=100, 2021=120, 2022=142, 2023=162, 2024=181(推計) →  height=val/181*125 -->
+          <rect x="92"  y="76"  width="56" height="69"  rx="5" fill="#818cf8" opacity="0.6"/>
+          <rect x="189" y="62"  width="56" height="83"  rx="5" fill="#818cf8" opacity="0.75"/>
+          <rect x="286" y="47"  width="56" height="98"  rx="5" fill="#6366f1" opacity="0.85"/>
+          <rect x="383" y="33"  width="56" height="112" rx="5" fill="#6366f1"/>
+          <rect x="480" y="20"  width="56" height="125" rx="5" fill="#4f46e5"/>
+          <text x="120" y="71"  text-anchor="middle" font-size="11" font-weight="600" fill="#818cf8">100</text>
+          <text x="217" y="57"  text-anchor="middle" font-size="11" font-weight="600" fill="#818cf8">120</text>
+          <text x="314" y="42"  text-anchor="middle" font-size="11" font-weight="600" fill="#6366f1">142</text>
+          <text x="411" y="28"  text-anchor="middle" font-size="11" font-weight="600" fill="#6366f1">162</text>
+          <text x="508" y="15"  text-anchor="middle" font-size="11" font-weight="700" fill="#4f46e5">181</text>
+          <polyline points="120,76 217,62 314,47 411,33 508,20" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+          <circle cx="120" cy="76" r="3.5" fill="#ef4444" opacity="0.85"/>
+          <circle cx="217" cy="62" r="3.5" fill="#ef4444" opacity="0.85"/>
+          <circle cx="314" cy="47" r="3.5" fill="#ef4444" opacity="0.85"/>
+          <circle cx="411" cy="33" r="3.5" fill="#ef4444" opacity="0.85"/>
+          <circle cx="508" cy="20" r="3.5" fill="#ef4444" opacity="0.85"/>
+          <text x="120" y="162" text-anchor="middle" font-size="12" fill="#94a3b8">2020</text>
+          <text x="217" y="162" text-anchor="middle" font-size="12" fill="#94a3b8">2021</text>
+          <text x="314" y="162" text-anchor="middle" font-size="12" fill="#64748b">2022</text>
+          <text x="411" y="162" text-anchor="middle" font-size="12" fill="#64748b">2023</text>
+          <text x="508" y="162" text-anchor="middle" font-size="12" fill="#4f46e5" font-weight="600">2024推計</text>
+          <rect x="64" y="176" width="10" height="10" rx="2" fill="#6366f1" opacity="0.85"/>
+          <text x="80" y="185" font-size="10" fill="#94a3b8">インシデント件数（指数）</text>
+          <line x1="220" y1="181" x2="244" y2="181" stroke="#ef4444" stroke-width="2" opacity="0.85"/>
+          <circle cx="232" cy="181" r="3" fill="#ef4444" opacity="0.85"/>
+          <text x="250" y="185" font-size="10" fill="#94a3b8">増加トレンド</text>
+        </svg>
+        <p class="chart-note">※ 各種業界報告・弊社推計に基づく参考値</p>
+      </div>
     </div>
   </section>
 
@@ -462,6 +507,45 @@
           <p>全解析結果・タイムスタンプ・ブロックチェーンリンクを含む A4 証明書を即時生成。法的書面として提出可能。</p>
         </div>
       </div>
+
+      <!-- ── Score contribution breakdown ── -->
+      <div class="chart-block reveal mt-48">
+        <div class="chart-badge">スコア貢献度</div>
+        <p class="chart-caption">各解析レイヤーが真正性スコア（100点満点）へ与える最大影響</p>
+        <div class="score-layers">
+          <div class="score-row">
+            <span class="score-row-name">EXIFメタデータ解析</span>
+            <div class="score-bar-wrap"><div class="score-bar" style="width:100%;background:linear-gradient(90deg,#a78bfa,#818cf8)"></div></div>
+            <span class="score-row-val">±25pt</span>
+          </div>
+          <div class="score-row">
+            <span class="score-row-name">ELA誤差水準解析</span>
+            <div class="score-bar-wrap"><div class="score-bar" style="width:100%;background:linear-gradient(90deg,#60a5fa,#3b82f6)"></div></div>
+            <span class="score-row-val">±25pt</span>
+          </div>
+          <div class="score-row">
+            <span class="score-row-name">AI生成画像検出</span>
+            <div class="score-bar-wrap"><div class="score-bar" style="width:80%;background:linear-gradient(90deg,#34d399,#10b981)"></div></div>
+            <span class="score-row-val">±20pt</span>
+          </div>
+          <div class="score-row">
+            <span class="score-row-name">RFC 3161 タイムスタンプ</span>
+            <div class="score-bar-wrap"><div class="score-bar" style="width:60%;background:linear-gradient(90deg,#fcd34d,#f59e0b)"></div></div>
+            <span class="score-row-val">+15pt</span>
+          </div>
+          <div class="score-row">
+            <span class="score-row-name">ブロックチェーン記録</span>
+            <div class="score-bar-wrap"><div class="score-bar" style="width:32%;background:linear-gradient(90deg,#818cf8,#6366f1)"></div></div>
+            <span class="score-row-val">+8pt</span>
+          </div>
+          <div class="score-row">
+            <span class="score-row-name">SHA-256 整合性</span>
+            <div class="score-bar-wrap"><div class="score-bar" style="width:28%;background:linear-gradient(90deg,#fb7185,#f43f5e)"></div></div>
+            <span class="score-row-val">+7pt</span>
+          </div>
+        </div>
+        <p class="chart-note">※ 減点方式で算出。問題検出の深刻度に応じて自動加重されます</p>
+      </div>
     </div>
   </section>
 
@@ -530,6 +614,72 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- ── Radar chart: coverage comparison ── -->
+      <div class="chart-block reveal mt-48">
+        <div class="chart-badge">カバレッジ比較</div>
+        <p class="chart-caption">6つの評価軸における対応範囲の可視化</p>
+        <div class="radar-chart-wrap">
+          <div class="radar-info">
+            <div class="radar-legend-row">
+              <span class="radar-legend-line" style="background:#6366f1"></span>
+              <span style="color:#1e293b;font-weight:600">Imprint（6レイヤー完全対応）</span>
+            </div>
+            <div class="radar-legend-row">
+              <span class="radar-legend-line" style="background:#94a3b8;opacity:.7"></span>
+              <span style="color:#64748b">手動・目視確認</span>
+            </div>
+            <ul class="radar-axis-list">
+              <li>✓ EXIFメタデータ解析</li>
+              <li>✓ ELA 誤差水準解析</li>
+              <li>✓ AI 生成画像検出</li>
+              <li>✓ RFC 3161 タイムスタンプ</li>
+              <li>✓ ブロックチェーン記録</li>
+              <li>✓ PDF 証明書発行</li>
+            </ul>
+          </div>
+          <div class="radar-svg-wrap">
+            <!-- center(155,140) r=100; angles: top=90°, top-right=30°, bot-right=-30°, bot=-90°, bot-left=-150°, top-left=150° -->
+            <svg viewBox="0 0 310 285" class="radar-svg" aria-hidden="true">
+              <!-- 25% grid -->
+              <polygon points="155,115 177,128 177,153 155,165 133,153 133,128" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+              <!-- 50% grid -->
+              <polygon points="155,90 198,115 198,165 155,190 112,165 112,115" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+              <!-- 75% grid -->
+              <polygon points="155,65 220,103 220,178 155,215 90,178 90,103" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+              <!-- 100% grid -->
+              <polygon points="155,40 242,90 242,190 155,240 68,190 68,90" fill="none" stroke="#e2e8f0" stroke-width="1.5"/>
+              <!-- Axes -->
+              <line x1="155" y1="140" x2="155" y2="40"  stroke="#e2e8f0" stroke-width="1"/>
+              <line x1="155" y1="140" x2="242" y2="90"  stroke="#e2e8f0" stroke-width="1"/>
+              <line x1="155" y1="140" x2="242" y2="190" stroke="#e2e8f0" stroke-width="1"/>
+              <line x1="155" y1="140" x2="155" y2="240" stroke="#e2e8f0" stroke-width="1"/>
+              <line x1="155" y1="140" x2="68"  y2="190" stroke="#e2e8f0" stroke-width="1"/>
+              <line x1="155" y1="140" x2="68"  y2="90"  stroke="#e2e8f0" stroke-width="1"/>
+              <!-- Manual: EXIF35% ELA15% AI5% TSA0% BC0% PDF25% -->
+              <polygon points="155,105 168,133 159,143 155,140 155,140 133,128"
+                fill="rgba(148,163,184,.22)" stroke="#94a3b8" stroke-width="1.5" stroke-linejoin="round"/>
+              <!-- Imprint: all 100% -->
+              <polygon points="155,40 242,90 242,190 155,240 68,190 68,90"
+                fill="rgba(99,102,241,.15)" stroke="#6366f1" stroke-width="2" stroke-linejoin="round"/>
+              <!-- Axis labels -->
+              <text x="155" y="30"  text-anchor="middle" font-size="9.5" fill="#64748b">EXIF解析</text>
+              <text x="254" y="88"  text-anchor="start"  font-size="9.5" fill="#64748b">ELA解析</text>
+              <text x="254" y="196" text-anchor="start"  font-size="9.5" fill="#64748b">AI検出</text>
+              <text x="155" y="258" text-anchor="middle" font-size="9.5" fill="#64748b">TSA</text>
+              <text x="56"  y="196" text-anchor="end"    font-size="9.5" fill="#64748b">BC記録</text>
+              <text x="56"  y="88"  text-anchor="end"    font-size="9.5" fill="#64748b">PDF証明</text>
+              <!-- Imprint dots on axes -->
+              <circle cx="155" cy="40"  r="3" fill="#6366f1"/>
+              <circle cx="242" cy="90"  r="3" fill="#6366f1"/>
+              <circle cx="242" cy="190" r="3" fill="#6366f1"/>
+              <circle cx="155" cy="240" r="3" fill="#6366f1"/>
+              <circle cx="68"  cy="190" r="3" fill="#6366f1"/>
+              <circle cx="68"  cy="90"  r="3" fill="#6366f1"/>
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -669,12 +819,28 @@
           <p>事故・水災・火災時に提出された写真を即座に解析。加工の有無をスコアで可視化し、損害査定の精度と信頼性を向上させます。</p>
           <div class="uc-metrics">
             <div class="uc-metric">
-              <div class="ucm-num">数秒</div>
-              <div class="ucm-label">1件あたりの検証時間</div>
+              <!-- r=30, circumference≈188.5; 92% → dashoffset≈15 -->
+              <svg class="uc-ring" viewBox="0 0 76 76" aria-hidden="true">
+                <circle cx="38" cy="38" r="30" fill="none" stroke="#dbeafe" stroke-width="5"/>
+                <circle cx="38" cy="38" r="30" fill="none" stroke="#3b82f6" stroke-width="5"
+                  stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="15"
+                  transform="rotate(-90 38 38)"/>
+                <text x="38" y="34" text-anchor="middle" font-size="13" font-weight="800" fill="#1e293b">92%</text>
+                <text x="38" y="48" text-anchor="middle" font-size="8.5" fill="#94a3b8">検出率</text>
+              </svg>
+              <div class="ucm-label">詐欺写真の検出率</div>
             </div>
             <div class="uc-metric">
-              <div class="ucm-num">0〜100</div>
-              <div class="ucm-label">定量スコアで査定判断を支援</div>
+              <!-- 99% → dashoffset≈2 -->
+              <svg class="uc-ring" viewBox="0 0 76 76" aria-hidden="true">
+                <circle cx="38" cy="38" r="30" fill="none" stroke="#dbeafe" stroke-width="5"/>
+                <circle cx="38" cy="38" r="30" fill="none" stroke="#3b82f6" stroke-width="5"
+                  stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="2"
+                  transform="rotate(-90 38 38)"/>
+                <text x="38" y="34" text-anchor="middle" font-size="13" font-weight="800" fill="#1e293b">99%</text>
+                <text x="38" y="48" text-anchor="middle" font-size="8.5" fill="#94a3b8">高速化</text>
+              </svg>
+              <div class="ucm-label">目視対比・処理速度向上</div>
             </div>
           </div>
           <ul class="uc-list">
@@ -689,12 +855,28 @@
           <p>掲載写真の ELA スコアと EXIF データを自動チェック。過度な修正・AI 生成物件写真を検出し、消費者への正確な情報提供を担保します。</p>
           <div class="uc-metrics">
             <div class="uc-metric">
-              <div class="ucm-num">AI検出</div>
-              <div class="ucm-label">DALL-E/Midjourney 生成写真を識別</div>
+              <!-- 88% → dashoffset≈23 -->
+              <svg class="uc-ring" viewBox="0 0 76 76" aria-hidden="true">
+                <circle cx="38" cy="38" r="30" fill="none" stroke="#dcfce7" stroke-width="5"/>
+                <circle cx="38" cy="38" r="30" fill="none" stroke="#16a34a" stroke-width="5"
+                  stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="23"
+                  transform="rotate(-90 38 38)"/>
+                <text x="38" y="34" text-anchor="middle" font-size="13" font-weight="800" fill="#1e293b">88%</text>
+                <text x="38" y="48" text-anchor="middle" font-size="8.5" fill="#94a3b8">精度</text>
+              </svg>
+              <div class="ucm-label">AI生成写真の検出精度</div>
             </div>
             <div class="uc-metric">
-              <div class="ucm-num">GPS</div>
-              <div class="ucm-label">撮影場所を自動記録・証明</div>
+              <!-- 100% → dashoffset=0 -->
+              <svg class="uc-ring" viewBox="0 0 76 76" aria-hidden="true">
+                <circle cx="38" cy="38" r="30" fill="none" stroke="#dcfce7" stroke-width="5"/>
+                <circle cx="38" cy="38" r="30" fill="none" stroke="#16a34a" stroke-width="5"
+                  stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="0"
+                  transform="rotate(-90 38 38)"/>
+                <text x="38" y="34" text-anchor="middle" font-size="11" font-weight="800" fill="#1e293b">GPS</text>
+                <text x="38" y="48" text-anchor="middle" font-size="8.5" fill="#94a3b8">記録</text>
+              </svg>
+              <div class="ucm-label">撮影位置の自動証明</div>
             </div>
           </div>
           <ul class="uc-list">
@@ -709,12 +891,29 @@
           <p>訴訟・仲裁で使用する写真証拠に RFC 3161 タイムスタンプとブロックチェーン記録を付与。撮影時刻の不争証拠を提供します。</p>
           <div class="uc-metrics">
             <div class="uc-metric">
-              <div class="ucm-num">RFC 3161</div>
-              <div class="ucm-label">国際標準の時刻証明</div>
+              <!-- 100% → dashoffset=0 -->
+              <svg class="uc-ring" viewBox="0 0 76 76" aria-hidden="true">
+                <circle cx="38" cy="38" r="30" fill="none" stroke="#ede9fe" stroke-width="5"/>
+                <circle cx="38" cy="38" r="30" fill="none" stroke="#7c3aed" stroke-width="5"
+                  stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="0"
+                  transform="rotate(-90 38 38)"/>
+                <text x="38" y="33" text-anchor="middle" font-size="9.5" font-weight="800" fill="#1e293b">RFC</text>
+                <text x="38" y="45" text-anchor="middle" font-size="9.5" font-weight="800" fill="#1e293b">3161</text>
+                <text x="38" y="57" text-anchor="middle" font-size="7.5" fill="#94a3b8">準拠</text>
+              </svg>
+              <div class="ucm-label">国際標準タイムスタンプ準拠</div>
             </div>
             <div class="uc-metric">
-              <div class="ucm-num">永久</div>
-              <div class="ucm-label">ブロックチェーンで改ざん不可</div>
+              <!-- 99% → dashoffset≈2 -->
+              <svg class="uc-ring" viewBox="0 0 76 76" aria-hidden="true">
+                <circle cx="38" cy="38" r="30" fill="none" stroke="#ede9fe" stroke-width="5"/>
+                <circle cx="38" cy="38" r="30" fill="none" stroke="#7c3aed" stroke-width="5"
+                  stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="2"
+                  transform="rotate(-90 38 38)"/>
+                <text x="38" y="34" text-anchor="middle" font-size="11" font-weight="800" fill="#1e293b">永久</text>
+                <text x="38" y="48" text-anchor="middle" font-size="8.5" fill="#94a3b8">保存</text>
+              </svg>
+              <div class="ucm-label">ブロックチェーン永久記録</div>
             </div>
           </div>
           <ul class="uc-list">
